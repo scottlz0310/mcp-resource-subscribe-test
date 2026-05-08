@@ -54,6 +54,19 @@ export function createProbeServer(
   const subscriptions = new Set<string>();
   let updateTimer: NodeJS.Timeout | undefined;
 
+  server.tool(
+    "get_review_status",
+    "Returns the current review status. Same data as reading the test://review/status resource.",
+    {},
+    async () => {
+      const state = store.get();
+      log("[tools/call] get_review_status");
+      return {
+        content: [{ type: "text", text: renderReviewStatus(state) }],
+      };
+    },
+  );
+
   const scheduleUpdate = () => {
     if (updateTimer || store.get().version >= 2) {
       return;
