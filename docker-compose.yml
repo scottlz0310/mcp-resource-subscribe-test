@@ -1,0 +1,12 @@
+services:
+  mcp-resource-subscribe-test:
+    build: .
+    ports:
+      - "8089:8089"
+    environment:
+      MCP_TEST_PORT: "8089"
+      MCP_TEST_UPDATE_DELAY_SECONDS: "5"
+      MCP_TEST_INITIAL_STATUS: "pending"
+      MCP_TEST_UPDATED_STATUS: "reviewed"
+      MCP_TEST_SEND_LIST_CHANGED: "false"
+      MCP_TEST_LOG_LEVEL: "debug"

@@ -1,0 +1,67 @@
+export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
+
+export interface TestConfig {
+  port: number;
+  updateDelaySeconds: number;
+  initialStatus: string;
+  updatedStatus: string;
+  sendListChanged: boolean;
+  logLevel: LogLevel;
+}
+
+export const DEFAULT_CONFIG: TestConfig = {
+  port: 8089,
+  updateDelaySeconds: 5,
+  initialStatus: "pending",
+  updatedStatus: "reviewed",
+  sendListChanged: false,
+  logLevel: "debug",
+};
+
+function parseNumber(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (!value) {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+function parseLogLevel(value: string | undefined): LogLevel {
+  if (
+    value === "debug" ||
+    value === "info" ||
+    value === "warn" ||
+    value === "error" ||
+    value === "silent"
+  ) {
+    return value;
+  }
+
+  return DEFAULT_CONFIG.logLevel;
+}
+
+export function configFromEnv(env: NodeJS.ProcessEnv = process.env): TestConfig {
+  return {
+    port: parseNumber(env.MCP_TEST_PORT, DEFAULT_CONFIG.port),
+    updateDelaySeconds: parseNumber(
+      env.MCP_TEST_UPDATE_DELAY_SECONDS,
+      DEFAULT_CONFIG.updateDelaySeconds,
+    ),
+    initialStatus: env.MCP_TEST_INITIAL_STATUS ?? DEFAULT_CONFIG.initialStatus,
+    updatedStatus: env.MCP_TEST_UPDATED_STATUS ?? DEFAULT_CONFIG.updatedStatus,
+    sendListChanged: parseBoolean(
+      env.MCP_TEST_SEND_LIST_CHANGED,
+      DEFAULT_CONFIG.sendListChanged,
+    ),
+    logLevel: parseLogLevel(env.MCP_TEST_LOG_LEVEL),
+  };
+}
