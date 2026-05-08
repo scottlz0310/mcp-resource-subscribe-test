@@ -59,7 +59,7 @@ export function createProbeServer(
     "get_review_status",
     {
       description:
-        "Returns the current review status. Same data as reading the test://review/status resource.",
+        `Returns the current review status. Same data as reading the ${REVIEW_STATUS_URI} resource.`,
       inputSchema: z.object({}),
     },
     async () => {

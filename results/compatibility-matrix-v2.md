@@ -74,7 +74,7 @@ TODO
 TODO
 ```
 
-- Round 1 Level: `1 - connected` (root cause: `tools/list` → "Failed to get tools")
+- Round 1 Level: `1 - connected` (root cause: `tools/list` -> "Failed to get tools")
 - Round 2 Result level:
 - Does `tools/list` succeed now?
 - Does it call `resources/list`?
@@ -103,7 +103,7 @@ TODO
 TODO
 ```
 
-- Round 1 Level: `1 - connected` (root cause: `tools/list` → "Method not found")
+- Round 1 Level: `1 - connected` (root cause: `tools/list` -> "Method not found")
 - Round 2 Result level:
 - Does `tools/list` succeed now?
 - Does it call `resources/list`?
