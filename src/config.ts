@@ -2,6 +2,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
 
 export interface TestConfig {
   port: number;
+  mcpPath: string;
   updateDelaySeconds: number;
   initialStatus: string;
   updatedStatus: string;
@@ -11,6 +12,7 @@ export interface TestConfig {
 
 export const DEFAULT_CONFIG: TestConfig = {
   port: 8089,
+  mcpPath: "/mcp",
   updateDelaySeconds: 5,
   initialStatus: "pending",
   updatedStatus: "reviewed",
@@ -49,9 +51,22 @@ function parseLogLevel(value: string | undefined): LogLevel {
   return DEFAULT_CONFIG.logLevel;
 }
 
+function parseMcpPath(value: string | undefined, fallback: string): string {
+  if (!value || value.trim() === "") {
+    return fallback;
+  }
+  let path = value.trim();
+  if (!path.startsWith("/")) {
+    path = "/" + path;
+  }
+  path = path.replace(/\/+$/, "");
+  return path === "" ? fallback : path;
+}
+
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): TestConfig {
   return {
     port: parseNumber(env.MCP_TEST_PORT, DEFAULT_CONFIG.port),
+    mcpPath: parseMcpPath(env.MCP_TEST_PATH, DEFAULT_CONFIG.mcpPath),
     updateDelaySeconds: parseNumber(
       env.MCP_TEST_UPDATE_DELAY_SECONDS,
       DEFAULT_CONFIG.updateDelaySeconds,

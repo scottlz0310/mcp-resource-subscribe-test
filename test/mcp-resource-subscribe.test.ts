@@ -11,6 +11,7 @@ import { REVIEW_STATUS_URI } from "../src/resourceState.js";
 
 const TEST_CONFIG: TestConfig = {
   port: 0,
+  mcpPath: "/mcp",
   updateDelaySeconds: 0.05,
   initialStatus: "pending",
   updatedStatus: "reviewed",

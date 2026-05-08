@@ -75,14 +75,15 @@ npm run dev
 
 ## Configuration
 
-| Environment variable | Default |
-| --- | --- |
-| `MCP_TEST_PORT` | `8089` |
-| `MCP_TEST_UPDATE_DELAY_SECONDS` | `5` |
-| `MCP_TEST_INITIAL_STATUS` | `pending` |
-| `MCP_TEST_UPDATED_STATUS` | `reviewed` |
-| `MCP_TEST_SEND_LIST_CHANGED` | `false` |
-| `MCP_TEST_LOG_LEVEL` | `debug` |
+| Environment variable | Default | Description |
+| --- | --- | --- |
+| `MCP_TEST_PORT` | `8089` | TCP port the server listens on |
+| `MCP_TEST_PATH` | `/mcp` | Additional MCP endpoint path. The server always registers `/mcp`; this adds a second path (e.g. `/mcp/subscribe-probe` for gateway routing). Both paths share the same MCP handler. |
+| `MCP_TEST_UPDATE_DELAY_SECONDS` | `5` | Seconds to wait before sending the resource update notification |
+| `MCP_TEST_INITIAL_STATUS` | `pending` | Initial value of the `status` field in the resource |
+| `MCP_TEST_UPDATED_STATUS` | `reviewed` | Value of `status` after the simulated update |
+| `MCP_TEST_SEND_LIST_CHANGED` | `false` | Also send `notifications/resources/list_changed` after the update |
+| `MCP_TEST_LOG_LEVEL` | `debug` | Log verbosity (`debug` / `info` / `warn` / `error` / `silent`) |
 
 If `MCP_TEST_SEND_LIST_CHANGED=true`, the server also sends `notifications/resources/list_changed` after the simulated update.
 
