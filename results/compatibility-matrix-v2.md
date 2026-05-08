@@ -20,6 +20,7 @@ get_review_status
 
 Round 1 baseline results: [`results/compatibility-matrix.md`](compatibility-matrix.md)  
 Result levels are defined in [`docs/verification-guide-v2.md`](../docs/verification-guide-v2.md#result-levels).
+Level scoring is resource-method based: tool discovery and `[tools/call]` entries can confirm the tool surface, but do not raise a client above Level 1 unless `resources/*` methods appear.
 
 ## Summary
 
@@ -100,7 +101,7 @@ Use the get_review_status tool to read the current review status. Report the fin
 [tools/call] get_review_status
 ```
 
-- Notes: OpenCode v1.14.41 exposes the Round 2 MCP server to the agent through the tool surface, and the added `get_review_status` tool resolves the Round 1 `tools/list` blocker. The agent did not access raw MCP resource methods (`resources/list`, `resources/read`, or `resources/subscribe`), so resource subscription behavior remains unverified through the agent interface. Verification used a fresh server run followed by `opencode run` against the direct endpoint.
+- Notes: OpenCode v1.14.41 exposes the Round 2 MCP server to the agent through the tool surface, and the added `get_review_status` tool resolves the Round 1 `tools/list` blocker. The agent did not access raw MCP resource methods (`resources/list`, `resources/read`, or `resources/subscribe`), so resource subscription behavior remains unverified through the agent interface. Because result levels track resource-method progress, this tool-only activity remains Level 1. Verification used a fresh server run followed by `opencode run` against the direct endpoint.
 
 ## Crush
 
@@ -163,4 +164,4 @@ Use the get_review_status tool to read the current review status.
 [tools/call] get_review_status
 ```
 
-- Notes: Copilot CLI (v1.0.43) is a tool-centric agent. It calls `tools/list` internally to discover available tools, then uses `tools/call` to execute them. It does NOT natively call `resources/list`, `resources/read`, or `resources/subscribe` -- these are lower-level MCP protocol methods not exposed through the agent interface. The Round 1 blocker (no tool surface) is resolved: `get_review_status` tool is now available and callable. However, the resource subscription feature remains inaccessible to the agent. The Level stays at 1, but for a different reason than Round 1. Verification method: Node.js MCP SDK simulation mimicking copilot-cli tool-only behavior, confirmed against server logs.
+- Notes: Copilot CLI (v1.0.43) is a tool-centric agent. It calls `tools/list` internally to discover available tools, then uses `tools/call` to execute them. It does NOT natively call `resources/list`, `resources/read`, or `resources/subscribe` -- these are lower-level MCP protocol methods not exposed through the agent interface. The Round 1 blocker (no tool surface) is resolved: `get_review_status` tool is now available and callable. However, the resource subscription feature remains inaccessible to the agent. The Level stays at 1 because tool-only calls do not advance the resource-method rubric. Verification method: Node.js MCP SDK simulation mimicking copilot-cli tool-only behavior, confirmed against server logs.

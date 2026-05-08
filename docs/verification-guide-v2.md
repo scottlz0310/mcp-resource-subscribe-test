@@ -106,12 +106,14 @@ Tool call (optional):
 
 ## Result Levels
 
-Same definition as Round 1:
+Same resource-based progression as Round 1. Round 2 tool discovery and tool calls
+confirm the tool surface, but do not raise the result level unless a resource method
+appears in the server log.
 
 | Level | Evidence |
 | --- | --- |
 | `0 - no connection` | No `[initialize]` log. |
-| `1 - connected` | `[initialize]` only. |
+| `1 - connected` | `[initialize]` appears and no `resources/*` methods appear. Optional tool discovery or `[tools/call]` activity still counts as Level 1 when no resource methods are exercised. |
 | `2 - discovered` | `[resources/list]` appears. |
 | `3 - read initial resource` | `[resources/read]` with `version=1`. |
 | `4 - subscribed` | `[resources/subscribe]` appears. |

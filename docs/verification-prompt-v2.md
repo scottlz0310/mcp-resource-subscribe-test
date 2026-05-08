@@ -35,7 +35,7 @@ Key log lines to look for:
 - Initial read:          [resources/read] uri=test://review/status version=1
 - Subscription:          [resources/subscribe] uri=test://review/status
 - Notification sent:     [notification/send] notifications/resources/updated uri=test://review/status
-- Post-notification read:[resources/read] uri=test://review/status version=2
+- Post-notification read: [resources/read] uri=test://review/status version=2
 - Tool call:             [tools/call] get_review_status
 
 After completing the verification, report only:
@@ -104,7 +104,7 @@ docker compose logs -f
 | Level | Evidence |
 | --- | --- |
 | `0 - no connection` | No `[initialize]` log. |
-| `1 - connected` | `[initialize]` only. |
+| `1 - connected` | `[initialize]` appears and no `resources/*` methods appear. Optional tool discovery or `[tools/call]` activity still counts as Level 1 when no resource methods are exercised. |
 | `2 - discovered` | `[resources/list]` appears. |
 | `3 - read initial resource` | `[resources/read]` with `version=1`. |
 | `4 - subscribed` | `[resources/subscribe]` appears. |
