@@ -26,12 +26,12 @@ Result levels are defined in [`docs/verification-guide-v2.md`](../docs/verificat
 Clients re-verified in Round 2 are those that reached only Level 1 in Round 1 due to the resource-only server issue.  
 Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose) are not expected to change and are omitted unless regression is suspected.
 
-| Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Δ |
+| Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Change |
 | --- | --- | --- | --- | --- | --- | --- |
-| Codex CLI | 1 | | | | | |
-| OpenCode | 1 | | | | | |
-| Crush | 1 | | | | | |
-| GitHub Copilot CLI | 1 | | | | | |
+| Codex CLI | 1 | - | - | - | - | - |
+| OpenCode | 1 | - | - | - | - | - |
+| Crush | 1 | - | - | - | - | - |
+| GitHub Copilot CLI | 1 | - | - | - | - | - |
 
 ## Codex CLI
 

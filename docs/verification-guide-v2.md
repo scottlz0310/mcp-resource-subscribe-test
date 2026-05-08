@@ -10,10 +10,10 @@ In Round 1, several clients reached only Level 1 because the MCP server exposed 
 
 | Client | Round 1 result | Root cause |
 | --- | --- | --- |
-| Codex CLI | 1 — connected | Resource-only server; no tool surface for the agent |
-| OpenCode | 1 — connected | `tools/list` → "Failed to get tools"; server hidden from agent |
-| Crush | 1 — connected | `tools/list` → "Method not found"; server hidden from agent |
-| GitHub Copilot CLI | 1 — connected | Resource-only server; no tool surface for the agent |
+| Codex CLI | 1 - connected | Resource-only server; no tool surface for the agent |
+| OpenCode | 1 - connected | `tools/list` -> "Failed to get tools"; server hidden from agent |
+| Crush | 1 - connected | `tools/list` -> "Method not found"; server hidden from agent |
+| GitHub Copilot CLI | 1 - connected | Resource-only server; no tool surface for the agent |
 
 Round 2 adds `get_review_status` to the server so that `tools/list` returns a non-empty response.
 This removes the error-on-tools-list blocker and allows deeper resource behavior to be observed.
@@ -31,7 +31,7 @@ The tool logs `[tools/call] get_review_status` in the server log.
 Same as Round 1, plus verify that the added tool does not interfere with resource subscription:
 
 1. Client connects and calls `initialize`.
-2. Client calls `tools/list` → receives `[get_review_status]` without error.
+2. Client calls `tools/list` -> receives `[get_review_status]` without error.
 3. Client calls `resources/list`.
 4. Client calls `resources/read` for `test://review/status`.
 5. Client sends `resources/subscribe`.

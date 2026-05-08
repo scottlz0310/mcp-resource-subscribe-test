@@ -73,6 +73,28 @@ afterEach(async () => {
 });
 
 describe("MCP resource subscription probe", () => {
+  it("exposes get_review_status in tools/list and returns status text on tools/call", async () => {
+    const logs: string[] = [];
+    const url = await startServer(logs);
+    const client = new Client({ name: "test-tool-client", version: "0.1.0" });
+    clients.push(client);
+
+    const transport = new StreamableHTTPClientTransport(url);
+    await client.connect(transport);
+
+    const { tools } = await client.listTools();
+    expect(tools).toContainEqual(expect.objectContaining({ name: "get_review_status" }));
+
+    const result = await client.callTool({ name: "get_review_status", arguments: {} });
+    expect(result.isError).not.toBe(true);
+    const content = result.content as Array<{ type: string; text?: string }>;
+    const texts = content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
+    expect(texts).toContain("version: 1");
+    expect(texts).toContain("status: pending");
+
+    expect(logs).toContain("[tools/call] get_review_status");
+  });
+
   it("lists, reads, subscribes, notifies, and re-reads the updated resource", async () => {
     const logs: string[] = [];
     const url = await startServer(logs);

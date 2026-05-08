@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import {
   ErrorCode,
   ListResourcesRequestSchema,
@@ -54,10 +55,13 @@ export function createProbeServer(
   const subscriptions = new Set<string>();
   let updateTimer: NodeJS.Timeout | undefined;
 
-  server.tool(
+  server.registerTool(
     "get_review_status",
-    "Returns the current review status. Same data as reading the test://review/status resource.",
-    {},
+    {
+      description:
+        "Returns the current review status. Same data as reading the test://review/status resource.",
+      inputSchema: z.object({}),
+    },
     async () => {
       const state = store.get();
       log("[tools/call] get_review_status");
