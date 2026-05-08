@@ -27,7 +27,10 @@ export function createMcpHttpApp(
     res.status(200).json({ ok: true });
   });
 
-  app.post("/mcp", async (req: Request, res: Response) => {
+  // Serve at /mcp and, if a different gateway path is configured, also at that path.
+  const mcpPaths = Array.from(new Set(["/mcp", config.mcpPath]));
+
+  const postMcp = async (req: Request, res: Response): Promise<void> => {
     const sessionId = req.header("mcp-session-id") ?? undefined;
 
     try {
@@ -81,9 +84,9 @@ export function createMcpHttpApp(
         res.status(500).json(jsonRpcError(-32603, "Internal server error"));
       }
     }
-  });
+  };
 
-  app.get("/mcp", async (req: Request, res: Response) => {
+  const getMcp = async (req: Request, res: Response): Promise<void> => {
     const sessionId = req.header("mcp-session-id") ?? undefined;
     const transport = sessionId ? transports.get(sessionId) : undefined;
 
@@ -93,9 +96,9 @@ export function createMcpHttpApp(
     }
 
     await transport.handleRequest(req, res);
-  });
+  };
 
-  app.delete("/mcp", async (req: Request, res: Response) => {
+  const deleteMcp = async (req: Request, res: Response): Promise<void> => {
     const sessionId = req.header("mcp-session-id") ?? undefined;
     const transport = sessionId ? transports.get(sessionId) : undefined;
 
@@ -106,7 +109,11 @@ export function createMcpHttpApp(
 
     await transport.handleRequest(req, res);
     transports.delete(sessionId);
-  });
+  };
+
+  app.post(mcpPaths, postMcp);
+  app.get(mcpPaths, getMcp);
+  app.delete(mcpPaths, deleteMcp);
 
   return app;
 }
