@@ -257,28 +257,6 @@ message: Waiting for simulated review result.
   - `capabilities.resources.subscribe` フラグの解釈可否はクライアント内部の挙動に依存するが、エージェントから呼び出せるツール表面に subscribe オペレーションが存在しないため、テストプロンプトの指示通りに購読を試みても Level 4 以降には到達できない。
   - `tools/list` 失敗 (resource-only サーバーで他クライアントが詰まったケース) は Claude Code では発生しない。リソース系ツールは tools とは独立に提供されているため、resource-only サーバーでも機能する。
 
-## Goose
-
-- Date:
-- Version:
-- OS / shell:
-- MCP configuration:
-- Prompt used:
-- Result level:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive or react to `notifications/resources/updated`?
-- Does it re-read after update?
-- Does the final answer mention `status: reviewed` and `version: 2`?
-- Server log excerpt:
-
-```text
-TODO
-```
-
-- Notes:
-
 ## Crush
 
 - Date: 2026-05-08 13:24 +09:00

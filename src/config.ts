@@ -51,10 +51,22 @@ function parseLogLevel(value: string | undefined): LogLevel {
   return DEFAULT_CONFIG.logLevel;
 }
 
+function parseMcpPath(value: string | undefined, fallback: string): string {
+  if (!value || value.trim() === "") {
+    return fallback;
+  }
+  let path = value.trim();
+  if (!path.startsWith("/")) {
+    path = "/" + path;
+  }
+  path = path.replace(/\/+$/, "");
+  return path === "" ? fallback : path;
+}
+
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): TestConfig {
   return {
     port: parseNumber(env.MCP_TEST_PORT, DEFAULT_CONFIG.port),
-    mcpPath: env.MCP_TEST_PATH ?? DEFAULT_CONFIG.mcpPath,
+    mcpPath: parseMcpPath(env.MCP_TEST_PATH, DEFAULT_CONFIG.mcpPath),
     updateDelaySeconds: parseNumber(
       env.MCP_TEST_UPDATE_DELAY_SECONDS,
       DEFAULT_CONFIG.updateDelaySeconds,
