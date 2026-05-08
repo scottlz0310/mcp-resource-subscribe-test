@@ -9,7 +9,7 @@ For each client, verify these behaviors:
 1. It connects to the MCP Streamable HTTP endpoint.
 2. It calls `resources/list`.
 3. It calls `resources/read` for `test://review/status`.
-4. It recognizes `resources.subscribe` in server capabilities.
+4. It recognizes the `capabilities.resources.subscribe` flag advertised during `initialize`.
 5. It sends `resources/subscribe`.
 6. It receives `notifications/resources/updated`.
 7. It calls `resources/read` again after the notification.
