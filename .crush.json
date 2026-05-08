@@ -1,0 +1,29 @@
+{
+  "$schema": "https://charm.land/crush.json",
+  "providers": {
+    "ollama": {
+      "name": "Ollama",
+      "base_url": "http://localhost:11434/v1/",
+      "type": "openai-compat",
+      "models": [
+        {
+          "name": "Qwen 3.5",
+          "id": "qwen3.5",
+          "context_window": 32768,
+          "default_max_tokens": 4000
+        }
+      ]
+    }
+  },
+  "mcp": {
+    "subscribe-probe": {
+      "type": "http",
+      "url": "http://127.0.0.1:8089/mcp",
+      "timeout": 120,
+      "disabled": false
+    }
+  },
+  "options": {
+    "disable_metrics": true
+  }
+}
