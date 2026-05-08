@@ -168,6 +168,12 @@ The test suite verifies:
 - `notifications/resources/updated` is received
 - updated `resources/read` returns version 2
 
+## Verification Procedure
+
+Use [`docs/verification-guide.md`](docs/verification-guide.md) for a repeatable client verification procedure.
+
+Record results in [`results/compatibility-matrix.md`](results/compatibility-matrix.md).
+
 ## Client Compatibility Notes
 
 ### Codex CLI
