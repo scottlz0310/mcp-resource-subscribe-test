@@ -30,17 +30,43 @@ function getResourceText(result: Awaited<ReturnType<Client["readResource"]>>): s
   return first.text;
 }
 
-function waitForUpdatedNotification(client: Client, timeoutMs: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
+interface NotificationWaiter {
+  promise: Promise<string>;
+  cancel: () => void;
+}
+
+function waitForUpdatedNotification(client: Client, timeoutMs: number): NotificationWaiter {
+  let settled = false;
+  let timeout: NodeJS.Timeout;
+
+  const promise = new Promise<string>((resolve, reject) => {
+    timeout = setTimeout(() => {
+      settled = true;
       reject(new Error(`Timed out waiting for resource update notification after ${timeoutMs} ms`));
     }, timeoutMs);
 
     client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
       clearTimeout(timeout);
       resolve(notification.params.uri);
     });
   });
+
+  return {
+    promise,
+    cancel: () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timeout);
+    },
+  };
 }
 
 export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise<SubscribeProbeResult> {
@@ -64,20 +90,31 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
 
     const initial = await client.readResource({ uri });
     const notification = waitForUpdatedNotification(client, timeoutMs);
-    await client.subscribeResource({ uri });
-    const notificationUri = await notification;
-    const final = await client.readResource({ uri });
-    await client.unsubscribeResource({ uri });
+    let subscribed = false;
+    let notificationUri = "";
+    let finalText = "";
+
+    try {
+      await client.subscribeResource({ uri });
+      subscribed = true;
+      notificationUri = await notification.promise;
+      const final = await client.readResource({ uri });
+      finalText = getResourceText(final);
+    } finally {
+      notification.cancel();
+      if (subscribed) {
+        await client.unsubscribeResource({ uri });
+      }
+    }
 
     return {
       capabilities,
       resourceFound,
       initialText: getResourceText(initial),
       notificationUri,
-      finalText: getResourceText(final),
+      finalText,
     };
   } finally {
     await client.close();
   }
 }
-
