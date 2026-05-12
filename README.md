@@ -169,11 +169,31 @@ The test suite verifies:
 - `notifications/resources/updated` is received
 - updated `resources/read` returns version 2
 
+## Standalone Subscription Probe Client
+
+The repository also includes a reusable MCP SDK client that exercises the full subscription flow against a running server:
+
+```bash
+npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp
+```
+
+After `npm run build`, the same client can be run directly with Node:
+
+```bash
+node dist/scripts/subscribe-client.js --url http://127.0.0.1:8089/mcp
+```
+
+This client is separate from any AI client's native MCP surface. For Codex CLI, it demonstrates a reproducible agent-driven SDK workaround: if the agent has shell, Node.js, local dependency, and localhost network access, it can run this client to call `resources/subscribe`, receive `notifications/resources/updated`, and re-read the updated resource.
+
 ## Verification Procedure
 
 Use [`docs/verification-guide.md`](docs/verification-guide.md) for a repeatable client verification procedure.
 
 Record results in [`results/compatibility-matrix.md`](results/compatibility-matrix.md).
+
+## Skill Templates
+
+Reusable Codex skill templates are tracked under [`docs/skills`](docs/skills). The `pr-review-subscribe` template documents a PR review cycle that uses MCP `resources/subscribe` as the primary wait route and polling only as fallback.
 
 ## Client Compatibility Notes
 
