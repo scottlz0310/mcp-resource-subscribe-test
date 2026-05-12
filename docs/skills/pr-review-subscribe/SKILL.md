@@ -36,6 +36,7 @@ Minimum required operations:
 - `{GH}:add_issue_comment`
 - `{RSRC}:resources/subscribe` equivalent for the watch resource
 - `{RSRC}:resources/read` equivalent for the watch resource
+- `{RSRC}:resources/unsubscribe` equivalent for the watch resource
 
 Fallback-only operation:
 

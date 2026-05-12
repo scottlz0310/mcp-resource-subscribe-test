@@ -7,6 +7,7 @@ import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/typ
 import { afterEach, describe, expect, it } from "vitest";
 import type { TestConfig } from "../src/config.js";
 import { createMcpHttpApp } from "../src/httpServer.js";
+import { runSubscribeProbe } from "../src/probeClient.js";
 import { REVIEW_STATUS_URI } from "../src/resourceState.js";
 
 const TEST_CONFIG: TestConfig = {
@@ -143,6 +144,36 @@ describe("MCP resource subscription probe", () => {
         "[resources/read] uri=test://review/status version=1",
         "[resources/subscribe] uri=test://review/status",
         "[resource/update] uri=test://review/status version=2",
+        "[notification/send] notifications/resources/updated uri=test://review/status",
+        "[resources/read] uri=test://review/status version=2",
+        "[resources/unsubscribe] uri=test://review/status",
+      ]),
+    );
+  });
+
+  it("runs the reusable subscription probe client flow", async () => {
+    const logs: string[] = [];
+    const url = await startServer(logs);
+
+    const result = await runSubscribeProbe({
+      url: url.toString(),
+      timeoutMs: 2_000,
+    });
+
+    expect(result.capabilities).toEqual({
+      subscribe: true,
+      listChanged: true,
+    });
+    expect(result.resourceFound).toBe(true);
+    expect(result.initialText).toContain("version: 1");
+    expect(result.initialText).toContain("status: pending");
+    expect(result.notificationUri).toBe(REVIEW_STATUS_URI);
+    expect(result.finalText).toContain("version: 2");
+    expect(result.finalText).toContain("status: reviewed");
+
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        "[resources/subscribe] uri=test://review/status",
         "[notification/send] notifications/resources/updated uri=test://review/status",
         "[resources/read] uri=test://review/status version=2",
         "[resources/unsubscribe] uri=test://review/status",

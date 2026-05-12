@@ -35,7 +35,7 @@ interface NotificationWaiter {
   cancel: () => void;
 }
 
-function waitForUpdatedNotification(client: Client, timeoutMs: number): NotificationWaiter {
+function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: number): NotificationWaiter {
   let settled = false;
   let timeout: NodeJS.Timeout;
 
@@ -47,6 +47,9 @@ function waitForUpdatedNotification(client: Client, timeoutMs: number): Notifica
 
     client.setNotificationHandler(ResourceUpdatedNotificationSchema, (notification) => {
       if (settled) {
+        return;
+      }
+      if (notification.params.uri !== uri) {
         return;
       }
 
@@ -89,7 +92,7 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
     }
 
     const initial = await client.readResource({ uri });
-    const notification = waitForUpdatedNotification(client, timeoutMs);
+    const notification = waitForUpdatedNotification(client, uri, timeoutMs);
     let subscribed = false;
     let notificationUri = "";
     let finalText = "";

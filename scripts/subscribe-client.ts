@@ -19,7 +19,12 @@ function readOption(name: string): string | undefined {
     return arg.slice(prefix.length);
   }
 
-  return process.argv[index + 1];
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for --${name}`);
+  }
+
+  return value;
 }
 
 function parseOptions(): CliOptions {
@@ -54,4 +59,3 @@ try {
   console.error(`subscribe-probe failed: ${message}`);
   process.exitCode = 1;
 }
-
