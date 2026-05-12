@@ -29,7 +29,8 @@ Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose)
 
 | Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Change |
 | --- | --- | --- | --- | --- | --- | --- |
-| Codex CLI | 1 | 3 native / 7 SDK workaround | YES | YES | NO native / YES SDK workaround | tools/list and resources/list/read now work natively; shell-driven SDK client can subscribe |
+| Codex CLI | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work natively; subscribe not exposed |
+| Codex CLI SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
 | OpenCode | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
 | Crush | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work; subscribe not reached |
 | GitHub Copilot CLI | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
