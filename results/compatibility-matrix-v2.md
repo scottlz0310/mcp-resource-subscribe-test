@@ -29,7 +29,8 @@ Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose)
 
 | Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Change |
 | --- | --- | --- | --- | --- | --- | --- |
-| Codex CLI | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work; subscribe not reached |
+| Codex CLI | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work natively; subscribe not exposed |
+| Codex CLI SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
 | OpenCode | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
 | Crush | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work; subscribe not reached |
 | GitHub Copilot CLI | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
@@ -72,6 +73,39 @@ Use the get_review_status tool to read the current review status.
 ```
 
 - Notes: Codex CLI exposes the Round 2 MCP tool to the agent and can access MCP resource discovery/read through `list_mcp_resources` and `read_mcp_resource`. It does not expose a `resources/subscribe` primitive to the agent, so the subscription notification path cannot be triggered from the agent interface. This improves the observed level from Round 1 (Level 1 -> Level 3), but full subscription behavior remains unverified.
+
+### Codex CLI SDK workaround follow-up
+
+- Date: 2026-05-12
+- Version: codex-cli 0.130.0
+- OS / shell: Microsoft Windows NT 10.0.26200.0 / PowerShell 7.6.1
+- MCP server: Docker Compose (`mcp-resource-subscribe-test`), published as `0.0.0.0:8089->8089/tcp`
+- MCP endpoint: `http://127.0.0.1:8089/mcp`
+- Related session log: [`results/codex-desktop-session-2026-05-12.md`](codex-desktop-session-2026-05-12.md)
+- Result level through Codex native MCP surface: `3 - read initial resource`
+- Result level through agent-driven SDK client workaround: `7 - agent context updated`
+- Does native Codex expose a first-class `resources/subscribe` operation to the agent? NO
+- Can the Codex agent reach `resources/subscribe` by running a separate Node.js MCP SDK client through shell? YES
+- Does the SDK client receive `notifications/resources/updated`? YES
+- Does the SDK client re-read after the notification? YES -- `version=2`
+- Does the final SDK output mention `status: reviewed` and `version: 2`? YES
+- SDK output excerpt:
+
+```text
+capabilities {"subscribe":true,"listChanged":true}
+resource-found true
+initial
+status: pending
+version: 1
+message: Waiting for simulated review result.
+notification test://review/status
+final
+status: reviewed
+version: 2
+message: Simulated review result is now available.
+```
+
+- Notes: This follow-up does not change the native Codex MCP surface result. Codex CLI still exposes `list_mcp_resources` and `read_mcp_resource`, but not an agent-visible generic `resources/subscribe` primitive. The Level 7 result is an effective capability of a Codex agent with shell, Node.js, local package, and localhost network access: the agent can start an independent MCP protocol client and call `resources/subscribe` directly. Therefore the compatibility result should be reported as `Codex CLI native MCP surface: Level 3` and `Codex CLI agent-driven SDK workaround: Level 7`, not as a single unconditional `Codex CLI: Level 7`.
 
 ## OpenCode
 
