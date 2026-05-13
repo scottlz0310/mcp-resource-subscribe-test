@@ -34,6 +34,7 @@ Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose)
 | OpenCode | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
 | Crush | 1 | 3 | YES | YES | NO | tools/list and resources/list/read now work; subscribe not reached |
 | GitHub Copilot CLI | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
+| GitHub Copilot CLI SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
 
 ## Codex CLI
 
@@ -199,3 +200,48 @@ Use the get_review_status tool to read the current review status.
 ```
 
 - Notes: Copilot CLI (v1.0.43) is a tool-centric agent. It calls `tools/list` internally to discover available tools, then uses `tools/call` to execute them. It does NOT natively call `resources/list`, `resources/read`, or `resources/subscribe` -- these are lower-level MCP protocol methods not exposed through the agent interface. The Round 1 blocker (no tool surface) is resolved: `get_review_status` tool is now available and callable. However, the resource subscription feature remains inaccessible to the agent. The Level stays at 1 because tool-only calls do not advance the resource-method rubric. Verification method: Node.js MCP SDK simulation mimicking copilot-cli tool-only behavior, confirmed against server logs.
+
+### GitHub Copilot CLI SDK workaround follow-up
+
+- Date: 2026-05-12
+- Version: 1.0.44 (GitHub Copilot CLI)
+- OS / shell: Microsoft Windows NT 10.0.26200.0 / PowerShell
+- MCP server: Docker Compose (`mcp-resource-subscribe-test`), published as `0.0.0.0:8089->8089/tcp`
+- MCP endpoint: `http://127.0.0.1:8089/mcp`
+- Result level through Copilot CLI native MCP surface: `1 - connected`
+- Result level through agent-driven SDK client (`npm run probe:subscribe`): `7 - agent context updated`
+- Does native Copilot CLI expose a first-class `resources/subscribe` operation to the agent? NO
+- Can the Copilot CLI agent reach `resources/subscribe` by running a separate Node.js MCP SDK client through shell? YES
+- Does the SDK client receive `notifications/resources/updated`? YES
+- Does the SDK client re-read after the notification? YES -- `version=2`
+- Does the final SDK output mention `status: reviewed` and `version: 2`? YES
+- SDK output excerpt:
+
+```text
+capabilities {"subscribe":true,"listChanged":true}
+resource-found true
+initial
+status: pending
+version: 1
+message: Waiting for simulated review result.
+notification test://review/status
+final
+status: reviewed
+version: 2
+message: Simulated review result is now available.
+```
+
+- Server log excerpt:
+
+```text
+[initialize] client connected
+[resources/list] requested
+[resources/read] uri=test://review/status version=1
+[resources/subscribe] uri=test://review/status
+[resource/update] uri=test://review/status version=2
+[notification/send] notifications/resources/updated uri=test://review/status
+[resources/read] uri=test://review/status version=2
+[resources/unsubscribe] uri=test://review/status
+```
+
+- Notes: This follow-up does not change the native Copilot CLI MCP surface result. Copilot CLI still exposes MCP tools to the agent through `tools/call`, but does not provide agent-visible `resources/list`, `resources/read`, or `resources/subscribe` primitives. The Level 7 result is an effective capability of a Copilot CLI agent with shell, Node.js, local package, and localhost network access: the agent can start an independent MCP protocol client (`scripts/subscribe-client.ts` via `npm run probe:subscribe`) and call `resources/subscribe` directly. Therefore the compatibility result should be reported as `Copilot CLI native MCP surface: Level 1` and `Copilot CLI agent-driven SDK workaround: Level 7`, not as a single unconditional `Copilot CLI: Level 7`. This mirrors the same pattern confirmed for Codex CLI on 2026-05-12.
