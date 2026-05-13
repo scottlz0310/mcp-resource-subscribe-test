@@ -1,10 +1,25 @@
 {
-  "name": "mcp-resource-subscribe-test",
+  "name": "mcp-resource-subscriber",
   "version": "0.1.0",
-  "description": "Minimal MCP Streamable HTTP server for testing resources/subscribe behavior.",
+  "description": "CLI probe for MCP resource subscriptions — subscribe to MCP resources, receive live update notifications, and re-read updated content.",
   "type": "module",
   "license": "MIT",
-  "private": false,
+  "bin": {
+    "mcp-resource-subscriber": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "!dist/test/",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scottlz0310/mcp-resource-subscriber.git"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
