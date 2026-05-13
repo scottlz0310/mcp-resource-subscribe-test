@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "bin": {
-    "mcp-resource-subscriber": "dist/cli.js"
+    "mcp-resource-subscriber": "dist/src/cli.js"
   },
   "files": [
     "dist/",

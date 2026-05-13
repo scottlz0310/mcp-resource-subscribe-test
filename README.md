@@ -3,7 +3,11 @@
 CLI probe and library for MCP `resources/subscribe` — connects to any MCP Streamable HTTP server, subscribes to a resource, receives the live update notification, and re-reads the updated content.
 
 ```bash
+# Coming soon — CLI implementation is in progress
 pnpm dlx mcp-resource-subscriber --url http://127.0.0.1:8089/mcp
+
+# Current workaround (requires a local clone):
+npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp
 ```
 
 > **Note**: A reference MCP test server used during compatibility verification is also included in this repository (Docker Compose). See the sections below for server setup and verification history.
