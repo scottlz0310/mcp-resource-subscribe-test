@@ -1,6 +1,6 @@
 # mcp-resource-subscriber
 
-CLI probe and library for MCP `resources/subscribe` — connects to any MCP Streamable HTTP server, subscribes to a resource, receives the live update notification, and re-reads the updated content.
+CLI probe for MCP `resources/subscribe` — connects to any MCP Streamable HTTP server, subscribes to a resource, receives the live update notification, and re-reads the updated content.
 
 ```bash
 # Coming soon — CLI implementation is in progress
