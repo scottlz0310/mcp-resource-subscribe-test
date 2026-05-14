@@ -47,7 +47,9 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log(`${pkg.name} v${pkg.version}`);
   console.log("");
   console.log("Usage:");
-  console.log("  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--timeout-ms <ms>]");
+  console.log(
+    "  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--auth-token <tok>] [--skip-resource-list-check] [--timeout-ms <ms>]",
+  );
   console.log("");
   console.log("Options:");
   console.log("  --url <url>         MCP server Streamable HTTP endpoint");
@@ -55,6 +57,14 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  --uri <uri>         Resource URI to subscribe to");
   console.log("                      Default: test://review/status (bundled test server only)");
   console.log("                      Env: MCP_PROBE_URI");
+  console.log("  --auth-token <tok>  Bearer token for Authorization header");
+  console.log("                      Prefer MCP_PROBE_AUTH_TOKEN env var. Command-line flags");
+  console.log("                      are visible in process lists and may be stored in shell");
+  console.log("                      history. Env: MCP_PROBE_AUTH_TOKEN (recommended)");
+  console.log("  --skip-resource-list-check");
+  console.log("                      Skip resources/list and assume the URI exists.");
+  console.log("                      Use for servers with dynamic resources not in list.");
+  console.log("                      Env: MCP_PROBE_SKIP_LIST_CHECK=true");
   console.log("  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)");
   console.log("                      Env: MCP_PROBE_TIMEOUT_MS");
   console.log("  --version, -v       Print version and exit");
@@ -84,7 +94,15 @@ function parseOptions() {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`Invalid --timeout-ms: ${timeoutRaw}`);
   }
-  return { url, uri, timeoutMs };
+  const authTokenFlag = readOption("auth-token");
+  const authToken = authTokenFlag ?? process.env.MCP_PROBE_AUTH_TOKEN ?? null;
+  const authTokenFromFlag = authTokenFlag !== undefined;
+  const requestHeaders: Record<string, string> | undefined = authToken
+    ? { Authorization: `Bearer ${authToken}` }
+    : undefined;
+  const skipResourceListCheck =
+    args.includes("--skip-resource-list-check") || process.env.MCP_PROBE_SKIP_LIST_CHECK === "true";
+  return { url, uri, timeoutMs, requestHeaders, skipResourceListCheck, authTokenFromFlag };
 }
 
 function extractRecommendedAction(text: string): string | null {
@@ -134,7 +152,18 @@ try {
         "warning: using default URI test://review/status which is only meaningful against the bundled test server",
       );
     }
-    const result = await runSubscribeProbe({ url: options.url, uri: options.uri, timeoutMs: options.timeoutMs });
+    if (options.authTokenFromFlag) {
+      console.warn(
+        "warning: --auth-token value is visible in process lists and may be stored in shell history. Prefer MCP_PROBE_AUTH_TOKEN env var.",
+      );
+    }
+    const result = await runSubscribeProbe({
+      url: options.url,
+      uri: options.uri,
+      timeoutMs: options.timeoutMs,
+      requestHeaders: options.requestHeaders,
+      skipResourceListCheck: options.skipResourceListCheck,
+    });
     printResult(result, options.url, options.uri);
     if (result.errorCode) {
       process.exitCode = 1;

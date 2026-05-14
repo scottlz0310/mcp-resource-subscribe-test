@@ -206,7 +206,17 @@ already reached a terminal state.
 
 Call `{CRM}:get_review_threads`.
 
-If there are 0 unresolved threads, go to Phase 6.5.
+**Routing on 0 unresolved threads** (both cases → Phase 6.5):
+
+- `cycles_done = 0` and unresolved = 0: Copilot found no issues on first review.
+- `cycles_done ≥ 1` and unresolved = 0: Re-review completed with no new issues; all previous fixes were approved.
+
+> **Issue #36 fix**: the original skill lacked the second branch. Without it the agent
+> entered Phase 3–5 with nothing to do and then Phase 6, which returned
+> `REQUEST_REREVIEW` again until `ESCALATE`. When unresolved = 0 on any cycle,
+> always skip directly to Phase 6.5.
+
+Otherwise (unresolved > 0), proceed to Phase 3.
 
 ## Phase 3: Classify And Decide
 
@@ -280,9 +290,18 @@ Follow `recommended_action`:
 | --- | --- |
 | `WAIT` | Increment `cycles_done`, return to Phase 1S |
 | `REPLY_RESOLVE` | Return to Phase 2 |
-| `REQUEST_REREVIEW` | Call `{CRM}:request_copilot_review`, increment `cycles_done`, return to Phase 1S |
+| `REQUEST_REREVIEW` | See override rule below; otherwise call `{CRM}:request_copilot_review`, increment `cycles_done`, return to Phase 1S |
 | `READY_TO_MERGE` | Phase 6.5 |
 | `ESCALATE` | Report state and stop |
+
+**`REQUEST_REREVIEW` override (Issue #36)**:
+If `recommended_action = REQUEST_REREVIEW` AND the just-completed review returned 0 new unresolved threads, do **not** request another review. The tool's cycle accounting does not have enough context to detect this; the agent must apply this judgment override.
+
+Treat the situation as `READY_TO_MERGE` and proceed to Phase 6.5.
+
+This override applies when both are true:
+- `cycles_done ≥ 1` (this is not the first cycle)
+- unresolved thread count from Phase 2 of this cycle = 0
 
 ## Phase 6.5: CI
 

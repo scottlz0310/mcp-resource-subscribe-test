@@ -11,6 +11,17 @@ export interface SubscribeProbeOptions {
   timeoutMs?: number;
   clientName?: string;
   clientVersion?: string;
+  /** Extra HTTP headers to include in every request (e.g. Authorization).
+   * Keys and values must be valid HTTP header names/values; invalid values
+   * will cause the underlying transport to throw at request time.
+   */
+  requestHeaders?: Record<string, string>;
+  /**
+   * When true, skip the resources/list check and assume the URI exists.
+   * Useful for servers that support dynamic resources not returned by
+   * resources/list (e.g. copilot-review-mcp watch URIs).
+   */
+  skipResourceListCheck?: boolean;
 }
 
 export interface SubscribeProbeResult {
@@ -87,25 +98,31 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
   });
 
   try {
-    const transport = new StreamableHTTPClientTransport(new URL(options.url));
+    const transport = new StreamableHTTPClientTransport(new URL(options.url), {
+      requestInit: options.requestHeaders ? { headers: options.requestHeaders } : undefined,
+    });
     await client.connect(transport);
 
     const capabilities = client.getServerCapabilities()?.resources ?? null;
-    const resources = await client.listResources();
-    const resourceFound = resources.resources.some((resource) => resource.uri === uri);
-
-    if (!resourceFound) {
-      return {
-        capabilities,
-        resourceFound: false,
-        initialText: "",
-        notificationUri: "",
-        finalText: "",
-        route: "timeout",
-        subscribed: false,
-        unsubscribed: false,
-        errorCode: "RESOURCE_NOT_FOUND",
-      };
+    let resourceFound: boolean;
+    if (options.skipResourceListCheck) {
+      resourceFound = true;
+    } else {
+      const resources = await client.listResources();
+      resourceFound = resources.resources.some((resource) => resource.uri === uri);
+      if (!resourceFound) {
+        return {
+          capabilities,
+          resourceFound: false,
+          initialText: "",
+          notificationUri: "",
+          finalText: "",
+          route: "timeout",
+          subscribed: false,
+          unsubscribed: false,
+          errorCode: "RESOURCE_NOT_FOUND",
+        };
+      }
     }
 
     const initial = await client.readResource({ uri });
