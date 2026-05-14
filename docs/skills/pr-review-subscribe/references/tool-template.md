@@ -108,7 +108,19 @@ Fallback response should expose the same routing fields:
 
 If Codex has no native `resources/subscribe` tool but shell execution is allowed, a project may provide an SDK wrapper. Treat it as `{RSRC}` only when the user or repository explicitly allows that workaround.
 
-Template command:
+Template command (recommended — published package):
+
+```bash
+pnpm dlx mcp-resource-subscriber --url <mcp-url> --uri <watch-resource-uri> --timeout-ms 900000
+```
+
+Fallback if `pnpm` is unavailable:
+
+```bash
+npx mcp-resource-subscriber --url <mcp-url> --uri <watch-resource-uri> --timeout-ms 900000
+```
+
+Local build (for unreleased changes — requires `npm ci && npm run build` first):
 
 ```bash
 node <path-to-client.js> --url <mcp-url> --uri <watch-resource-uri> --timeout-ms 900000

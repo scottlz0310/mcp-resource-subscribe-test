@@ -7,11 +7,11 @@ CLI probe for MCP `resources/subscribe` — connects to any MCP Streamable HTTP 
 ## Install
 
 ```bash
-# one-off (no install):
-npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
-
-# or with pnpm:
+# recommended (no install):
 pnpm dlx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
+
+# fallback if pnpm is unavailable:
+npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
 
 # or install globally:
 npm install -g mcp-resource-subscriber
