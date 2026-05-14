@@ -5,7 +5,7 @@
 This repository is a **compatibility lab** for MCP `resources/subscribe`. It contains two things:
 
 1. **A reference MCP Streamable HTTP server** — exposes one resource (`test://review/status`) that updates after a client subscribes, then sends `notifications/resources/updated`.
-2. **A reusable subscription probe client** (`src/probeClient.ts`) — exercises the full subscribe→notify→re-read flow against any running server.
+2. **A reusable subscription probe client** (`src/client/probeClient.ts`) — exercises the full subscribe→notify→re-read flow against any running server.
 
 The goal is reproducible testing of whether CLI AI agents (Codex, Gemini, Claude Code, Crush, etc.) correctly handle MCP resource subscriptions.
 
@@ -21,31 +21,34 @@ npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp  # run probe client a
 docker compose up --build      # start reference server on port 8089
 ```
 
-**Node requirement**: `>=24.15.0` (enforced in `package.json` engines and CI).
+**Node requirement**: `>=26.0.0` (enforced in `package.json` engines and CI).
 
 ## Architecture
 
 ```
 src/
-  index.ts         — entrypoint: reads env config, starts Express HTTP server
-  config.ts        — TestConfig type + configFromEnv() (all env vars parsed here)
-  httpServer.ts    — createMcpHttpApp(): wires McpServer → Express via StreamableHTTP transport
-  mcpServer.ts     — createProbeServer(): registers MCP handlers (list/read/subscribe/unsubscribe + tool)
-  resourceState.ts — ReviewStatusStore (in-memory, version 1→2), renderReviewStatus(), constants
-  probeClient.ts   — runSubscribeProbe(): SDK client that exercises the full flow, returns typed result
-  logger.ts        — createConsoleLogger(config): returns a LogSink that outputs all lines unless logLevel is 'silent' (no level hierarchy filtering)
-  cli.ts           — stub CLI entry (not yet implemented; exits with error unless --help)
+  server/
+    index.ts         — entrypoint: reads env config, starts Express HTTP server
+    config.ts        — TestConfig type + configFromEnv() (all env vars parsed here)
+    httpServer.ts    — createMcpHttpApp(): wires McpServer → Express via StreamableHTTP transport
+    mcpServer.ts     — createProbeServer(): registers MCP handlers (list/read/subscribe/unsubscribe + tool)
+    resourceState.ts — ReviewStatusStore (in-memory, version 1→2), renderReviewStatus(), constants
+    logger.ts        — createConsoleLogger(config): returns a LogSink that outputs all lines unless logLevel is 'silent' (no level hierarchy filtering)
+  client/
+    probeClient.ts   — runSubscribeProbe(): SDK client that exercises the full flow, returns typed result
+    cli.ts           — published bin entry; supports --url, --uri, --auth-token, --skip-resource-list-check, --timeout-ms
 
 scripts/
   subscribe-client.ts  — thin wrapper that calls runSubscribeProbe() with CLI args, prints result
 
 test/
   mcp-resource-subscribe.test.ts  — vitest integration tests (spin up in-process server on port 0)
+  e2e.test.ts                     — E2E tests against external copilot-review-mcp server (requires env vars)
 ```
 
 ## Key Patterns
 
-**Dual-role repo**: `src/index.ts` (server) and `src/probeClient.ts` (client) are both first-class. The server is for Docker/manual testing; the probe client is published in the package (`dist/src/probeClient.js`) but not exposed via a formal `exports` or `main` entry point.
+**Dual-role repo**: `src/server/` (server) and `src/client/` (client) are both first-class. The server is for Docker/manual testing; the probe client is published in the package (`dist/src/client/probeClient.js`) and the CLI bin is `dist/src/client/cli.js`.
 
 **`createProbeServer()` triggers the update only on subscribe**: `scheduleUpdate()` is called inside the `SubscribeRequestSchema` handler. The timer fires after `updateDelaySeconds` seconds. In tests, this is set to `0.05` so tests run fast — don't use the production default (5s) in tests.
 
@@ -55,7 +58,7 @@ test/
 
 **Imports use `.js` extensions**: TypeScript is compiled with `moduleResolution: NodeNext`. All relative imports must end in `.js` even in `.ts` source files.
 
-**`tsconfig.json` `rootDir` is `.`**: Both `src/`, `test/`, and `scripts/` are compiled to `dist/` preserving the same subdirectory structure. `dist/src/cli.js` is the published bin entry.
+**`tsconfig.json` `rootDir` is `.`**: Both `src/`, `test/`, and `scripts/` are compiled to `dist/` preserving the same subdirectory structure. `dist/src/client/cli.js` is the published bin entry.
 
 ## Configuration (Environment Variables)
 
@@ -91,4 +94,33 @@ Three test cases:
 
 ## CLI Status
 
-`src/cli.ts` (the published bin) is a **stub** — it prints an error and exits 1. The actual probe functionality is in `scripts/subscribe-client.ts`, run via `npm run probe:subscribe`. Full CLI implementation is pending (tracked in GitHub Issues).
+`src/client/cli.ts` is the published bin entry (`dist/src/client/cli.js`). It supports `--url`, `--uri`, `--auth-token`, `--skip-resource-list-check`, `--timeout-ms`, `--version`, and `--help`. The actual probe functionality is in `src/client/probeClient.ts`.
+
+## Secret and Log Handling
+
+Before posting logs, command output, PR descriptions, issue comments, review summaries, or E2E reports to GitHub, redact all secrets.
+
+Never paste raw values that look like:
+
+- GitHub tokens: `ghp_`, `gho_`, `github_pat_`
+- npm tokens: `npm_`
+- Bearer tokens or OAuth tokens
+- `Authorization:` header values
+- `MCP_PROBE_AUTH_TOKEN`, `MCP_E2E_TOKEN`, `NODE_AUTH_TOKEN`
+- cookies, session IDs, refresh tokens, private keys, or client secrets
+
+Use placeholders instead:
+
+- `<redacted>`
+- `<token>`
+- `Bearer <redacted>`
+- `$(gh auth token)` in command examples
+
+If a secret is accidentally posted publicly, treat it as compromised even if it is edited out later. Immediately rotate or revoke the token, then replace the public text with a placeholder.
+
+Do not include raw environment dumps in PRs, issues, comments, or committed logs.
+
+For E2E evidence, preserve protocol facts but redact credentials:
+
+- Keep: server URL, resource URI, route, subscribed, notification-received, unsubscribed, error-code, phase-summary
+- Redact: Authorization headers, token values, cookies, sessions, OAuth responses, refresh tokens
