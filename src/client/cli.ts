@@ -48,7 +48,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("");
   console.log("Usage:");
   console.log(
-    "  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--auth-token <tok>] [--timeout-ms <ms>]",
+    "  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--auth-token <tok>] [--skip-resource-list-check] [--timeout-ms <ms>]",
   );
   console.log("");
   console.log("Options:");
@@ -58,7 +58,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("                      Default: test://review/status (bundled test server only)");
   console.log("                      Env: MCP_PROBE_URI");
   console.log("  --auth-token <tok>  Bearer token for Authorization header");
-  console.log("                      Prefer MCP_PROBE_AUTH_TOKEN env var: command-line flags");
+  console.log("                      Prefer MCP_PROBE_AUTH_TOKEN env var. Command-line flags");
   console.log("                      are visible in process lists and may be stored in shell");
   console.log("                      history. Env: MCP_PROBE_AUTH_TOKEN (recommended)");
   console.log("  --skip-resource-list-check");
@@ -94,8 +94,9 @@ function parseOptions() {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`Invalid --timeout-ms: ${timeoutRaw}`);
   }
-  const authToken = readOption("auth-token") ?? process.env.MCP_PROBE_AUTH_TOKEN ?? null;
-  const authTokenFromFlag = readOption("auth-token") !== undefined;
+  const authTokenFlag = readOption("auth-token");
+  const authToken = authTokenFlag ?? process.env.MCP_PROBE_AUTH_TOKEN ?? null;
+  const authTokenFromFlag = authTokenFlag !== undefined;
   const requestHeaders: Record<string, string> | undefined = authToken
     ? { Authorization: `Bearer ${authToken}` }
     : undefined;
