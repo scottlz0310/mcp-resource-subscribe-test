@@ -1,5 +1,5 @@
-import { runSubscribeProbe } from "../src/probeClient.js";
-import { REVIEW_STATUS_URI } from "../src/resourceState.js";
+import { runSubscribeProbe } from "../src/client/probeClient.js";
+import { REVIEW_STATUS_URI } from "../src/server/resourceState.js";
 
 interface CliOptions {
   url: string | null;

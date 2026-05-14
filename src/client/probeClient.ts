@@ -1,7 +1,9 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import { REVIEW_STATUS_URI } from "./resourceState.js";
+
+// Default URI for the bundled reference server (test://review/status)
+const REVIEW_STATUS_URI = "test://review/status";
 
 export interface SubscribeProbeOptions {
   url: string;
