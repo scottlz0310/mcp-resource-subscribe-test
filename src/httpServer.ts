@@ -1,7 +1,7 @@
-import express, { type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import express, { type Request, type Response } from "express";
 import type { TestConfig } from "./config.js";
 import type { LogSink } from "./logger.js";
 import { createProbeServer } from "./mcpServer.js";
@@ -14,10 +14,7 @@ function jsonRpcError(code: number, message: string) {
   };
 }
 
-export function createMcpHttpApp(
-  config: TestConfig,
-  log: LogSink = () => undefined,
-): express.Express {
+export function createMcpHttpApp(config: TestConfig, log: LogSink = () => undefined): express.Express {
   const app = express();
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
@@ -39,9 +36,7 @@ export function createMcpHttpApp(
       if (sessionId) {
         transport = transports.get(sessionId);
         if (!transport) {
-          res
-            .status(404)
-            .json(jsonRpcError(-32000, "Bad Request: invalid session ID"));
+          res.status(404).json(jsonRpcError(-32000, "Bad Request: invalid session ID"));
           return;
         }
       } else if (isInitializeRequest(req.body)) {
@@ -69,9 +64,7 @@ export function createMcpHttpApp(
         const { server } = createProbeServer(config, log);
         await server.connect(transport);
       } else {
-        res
-          .status(400)
-          .json(jsonRpcError(-32000, "Bad Request: missing session ID"));
+        res.status(400).json(jsonRpcError(-32000, "Bad Request: missing session ID"));
         return;
       }
 

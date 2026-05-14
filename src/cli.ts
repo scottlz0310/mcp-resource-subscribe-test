@@ -24,9 +24,7 @@ const pkg = readPkg();
 
 function readOption(name: string): string | undefined {
   const prefix = `--${name}=`;
-  const index = process.argv.findIndex(
-    (arg) => arg === `--${name}` || arg.startsWith(prefix),
-  );
+  const index = process.argv.findIndex((arg) => arg === `--${name}` || arg.startsWith(prefix));
   if (index === -1) {
     return undefined;
   }
@@ -47,21 +45,15 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log(`${pkg.name} v${pkg.version}`);
   console.log("");
   console.log("Usage:");
-  console.log(
-    "  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--timeout-ms <ms>]",
-  );
+  console.log("  mcp-resource-subscriber --url <server-url> [--uri <resource-uri>] [--timeout-ms <ms>]");
   console.log("");
   console.log("Options:");
   console.log("  --url <url>         MCP server Streamable HTTP endpoint");
   console.log("                      Env: MCP_PROBE_URL");
   console.log("  --uri <uri>         Resource URI to subscribe to");
-  console.log(
-    "                      Default: test://review/status (bundled test server only)",
-  );
+  console.log("                      Default: test://review/status (bundled test server only)");
   console.log("                      Env: MCP_PROBE_URI");
-  console.log(
-    "  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)",
-  );
+  console.log("  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)");
   console.log("                      Env: MCP_PROBE_TIMEOUT_MS");
   console.log("  --version, -v       Print version and exit");
   console.log("  --help, -h          Print this help and exit");
@@ -71,9 +63,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  mcp-resource-subscriber --url http://127.0.0.1:8089/mcp");
   console.log("");
   console.log("  # Against copilot-review-mcp:");
-  console.log(
-    "  mcp-resource-subscriber --url http://127.0.0.1:8080/mcp/copilot-review \\",
-  );
+  console.log("  mcp-resource-subscriber --url http://127.0.0.1:8080/mcp/copilot-review \\");
   console.log("    --uri copilot-review://watch/<watch_id> \\");
   console.log("    --timeout-ms 900000");
   process.exit(0);
@@ -87,8 +77,7 @@ if (args.includes("--version") || args.includes("-v")) {
 function parseOptions() {
   const url = readOption("url") ?? process.env.MCP_PROBE_URL ?? null;
   const uri = readOption("uri") ?? process.env.MCP_PROBE_URI ?? REVIEW_STATUS_URI;
-  const timeoutRaw =
-    readOption("timeout-ms") ?? process.env.MCP_PROBE_TIMEOUT_MS ?? "15000";
+  const timeoutRaw = readOption("timeout-ms") ?? process.env.MCP_PROBE_TIMEOUT_MS ?? "15000";
   const timeoutMs = Number(timeoutRaw);
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`Invalid --timeout-ms: ${timeoutRaw}`);
@@ -101,11 +90,7 @@ function extractRecommendedAction(text: string): string | null {
   return match ? (match[1] ?? null) : null;
 }
 
-function printResult(
-  result: Awaited<ReturnType<typeof runSubscribeProbe>>,
-  url: string,
-  uri: string,
-): void {
+function printResult(result: Awaited<ReturnType<typeof runSubscribeProbe>>, url: string, uri: string): void {
   console.log(`capabilities ${JSON.stringify(result.capabilities)}`);
   console.log(`resource-found ${result.resourceFound}`);
   console.log(`resource-uri ${uri}`);

@@ -34,11 +34,7 @@ export function createUpdatedReviewStatus(config: TestConfig): ReviewStatusState
 }
 
 export function renderReviewStatus(state: ReviewStatusState): string {
-  return [
-    `status: ${state.status}`,
-    `version: ${state.version}`,
-    `message: ${state.message}`,
-  ].join("\n");
+  return [`status: ${state.status}`, `version: ${state.version}`, `message: ${state.message}`].join("\n");
 }
 
 export class ReviewStatusStore {

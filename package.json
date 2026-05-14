@@ -26,7 +26,11 @@
     "dev": "tsx src/index.ts",
     "probe:subscribe": "tsx scripts/subscribe-client.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "biome check .",
+    "format": "biome format --write .",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
@@ -34,8 +38,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "@types/express": "^5.0.6",
     "@types/node": "^25.7.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "lefthook": "^2.1.6",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
