@@ -10,7 +10,7 @@ const REVIEW_STATUS_URI = "test://review/status";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Try compiled path (dist/src/) first, then source path (src/) for tsx direct-run
 function readPkg(): { name: string; version: string } {
-  for (const rel of ["../../package.json", "../package.json"]) {
+  for (const rel of ["../../package.json", "../../../package.json", "../package.json"]) {
     try {
       return JSON.parse(readFileSync(resolve(__dirname, rel), "utf8")) as {
         name: string;
