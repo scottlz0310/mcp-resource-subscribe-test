@@ -30,7 +30,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check": "biome check .",
     "format": "biome format --write .",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install || true"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",

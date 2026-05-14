@@ -19,6 +19,7 @@ jobs:
       - run: npm run build
       - run: npm run test:coverage
       - uses: codecov/codecov-action@v5
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
