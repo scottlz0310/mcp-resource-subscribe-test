@@ -25,7 +25,8 @@ Level scoring is resource-method based: tool discovery and `[tools/call]` entrie
 ## Summary
 
 Clients re-verified in Round 2 are those that reached only Level 1 in Round 1 due to the resource-only server issue.  
-Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose) are not expected to change and are omitted unless regression is suspected.
+Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose) are not expected to change and are omitted unless regression is suspected.  
+Clients not included in Round 1 (e.g., Claude Code web) were newly tested in Round 2.
 
 | Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Change |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -36,6 +37,8 @@ Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose)
 | Crush SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
 | GitHub Copilot CLI | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
 | GitHub Copilot CLI SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
+| Claude Code (web) — native | not tested | 1 | YES | NO | NO | MCP tools exposed via tool surface; resources/list and resources/subscribe not accessible natively |
+| Claude Code (web) — manual Bash/curl | not tested | 7 | YES | YES | YES | agent-driven curl achieves full subscribe + notification + re-read via SSE stream |
 
 ## Codex CLI
 
@@ -293,3 +296,57 @@ message: Simulated review result is now available.
 ```
 
 - Notes: This follow-up does not change the native Copilot CLI MCP surface result. Copilot CLI still exposes MCP tools to the agent through `tools/call`, but does not provide agent-visible `resources/list`, `resources/read`, or `resources/subscribe` primitives. The Level 7 result is an effective capability of a Copilot CLI agent with shell, Node.js, local package, and localhost network access: the agent can start an independent MCP protocol client (`scripts/subscribe-client.ts` via `npm run probe:subscribe`) and call `resources/subscribe` directly. Therefore the compatibility result should be reported as `Copilot CLI native MCP surface: Level 1` and `Copilot CLI agent-driven SDK workaround: Level 7`, not as a single unconditional `Copilot CLI: Level 7`. This mirrors the same pattern confirmed for Codex CLI on 2026-05-12.
+
+## Claude Code (web)
+
+Full session log: [`results/claude-code-web.md`](claude-code-web.md)
+
+### Claude Code (web) — native MCP client
+
+- Date: 2026-05-12
+- Version: claude-sonnet-4-6 (Claude Code web)
+- OS / shell: Linux (Claude Code web session)
+- MCP endpoint configuration: `http://127.0.0.1:8089/mcp` (local dev server via `npm run dev`)
+
+- Round 1 Level: not previously tested
+- Round 2 Result level: `1 - connected`
+- Does `tools/list` succeed? YES — MCP server tools available as `mcp__<server>__<tool>`
+- Does it call `resources/list`? NO
+- Does it call `resources/read`? NO
+- Does it call `resources/subscribe`? NO
+- Does it receive `notifications/resources/updated`? NO
+- Does it re-read after update? NO
+- Does the final answer mention `status: reviewed` and `version: 2`? NO
+
+- Notes: Claude Code web exposes MCP server capabilities to the agent exclusively through the tool interface. When an MCP server is registered in `.claude/settings.json`, the client calls `initialize` and `tools/list` at startup and exposes each discovered tool as `mcp__<server>__<tool>`. It does not call `resources/list`, `resources/read`, or `resources/subscribe` automatically, and these are not accessible to the agent as native primitives. This matches the behavior seen with GitHub Copilot CLI and OpenCode in Rounds 1 and 2.
+
+### Claude Code (web) — manual Bash/curl execution
+
+- Date: 2026-05-12
+- Version: claude-sonnet-4-6 (Claude Code web)
+- OS / shell: Linux / bash (Bash tool)
+- MCP endpoint: `http://127.0.0.1:8089/mcp` (local dev server, `npm run dev`)
+
+- Round 1 Level: not previously tested
+- Round 2 Result level: `7 - agent context updated`
+- Does `tools/list` succeed? YES — `get_review_status` available
+- Does it call `resources/list`? YES
+- Does it call `resources/read` (version 1)? YES — `status: pending`, `version: 1`
+- Does it call `resources/subscribe`? YES
+- Does it receive `notifications/resources/updated`? YES — via SSE GET stream
+- Does it re-read after update? YES — `status: reviewed`, `version: 2`
+- Does the final answer mention `status: reviewed` and `version: 2`? YES
+
+- Protocol trace summary:
+
+```text
+POST /mcp  initialize         -> session-id, capabilities.resources.subscribe=true
+POST /mcp  resources/list     <- uri=test://review/status
+POST /mcp  resources/read     <- status: pending, version: 1
+POST /mcp  resources/subscribe
+GET  /mcp  (SSE stream)       <- notifications/resources/updated
+POST /mcp  resources/read     <- status: reviewed, version: 2
+POST /mcp  resources/unsubscribe
+```
+
+- Notes: Claude Code web can reason about and execute the full MCP resource subscription protocol manually via Bash/curl. The agent understands MCP Streamable HTTP (JSON-RPC over HTTP with SSE for notifications), can maintain session state via `mcp-session-id` header, and correctly interprets `notifications/resources/updated` to issue a subsequent `resources/read`. This makes Claude Code web a Level 7 client when the agent actively drives the protocol, but a Level 1 client when relying on the native MCP client infrastructure. This is a new pattern not seen in earlier rounds: an agent using its shell/curl access to implement the full MCP subscription protocol manually.
