@@ -6,9 +6,21 @@ import { runSubscribeProbe } from "./probeClient.js";
 import { REVIEW_STATUS_URI } from "./resourceState.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkg = JSON.parse(
-  readFileSync(resolve(__dirname, "../../package.json"), "utf8"),
-) as { name: string; version: string };
+// Try compiled path (dist/src/) first, then source path (src/) for tsx direct-run
+function readPkg(): { name: string; version: string } {
+  for (const rel of ["../../package.json", "../package.json"]) {
+    try {
+      return JSON.parse(readFileSync(resolve(__dirname, rel), "utf8")) as {
+        name: string;
+        version: string;
+      };
+    } catch {
+      // try next candidate
+    }
+  }
+  return { name: "mcp-resource-subscriber", version: "0.0.0" };
+}
+const pkg = readPkg();
 
 function readOption(name: string): string | undefined {
   const prefix = `--${name}=`;
