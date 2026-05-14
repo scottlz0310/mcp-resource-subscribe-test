@@ -57,13 +57,22 @@ function getResourceText(result: Awaited<ReturnType<Client["readResource"]>>): s
 interface NotificationWaiter {
   promise: Promise<string>;
   cancel: () => void;
+  /** Set synchronously when the notification handler fires. Non-null means a
+   *  notification was received regardless of which code path awaits the promise. */
+  receivedUri: string | null;
 }
 
 function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: number): NotificationWaiter {
   let settled = false;
   let timeout: NodeJS.Timeout;
 
-  const promise = new Promise<string>((resolve, reject) => {
+  const waiter: NotificationWaiter = {
+    promise: null!,
+    cancel: null!,
+    receivedUri: null,
+  };
+
+  waiter.promise = new Promise<string>((resolve, reject) => {
     timeout = setTimeout(() => {
       settled = true;
       reject(new Error(`Timed out waiting for resource update notification after ${timeoutMs} ms`));
@@ -79,6 +88,7 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
 
       settled = true;
       clearTimeout(timeout);
+      waiter.receivedUri = notification.params.uri;
       resolve(notification.params.uri);
     });
   });
@@ -86,19 +96,18 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
   // Attach a no-op rejection handler so that if the timeout fires while the
   // caller is in a non-awaiting code path (e.g., the pre-completion branch),
   // Node.js does not report an unhandled promise rejection.
-  promise.catch(() => {});
+  waiter.promise.catch(() => {});
 
-  return {
-    promise,
-    cancel: () => {
-      if (settled) {
-        return;
-      }
+  waiter.cancel = () => {
+    if (settled) {
+      return;
+    }
 
-      settled = true;
-      clearTimeout(timeout);
-    },
+    settled = true;
+    clearTimeout(timeout);
   };
+
+  return waiter;
 }
 
 export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise<SubscribeProbeResult> {
@@ -175,7 +184,15 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
       // that notification. Comparing with initialText detects this window.
       const postSubscribeText = getResourceText(await client.readResource({ uri }));
       if (postSubscribeText !== initialText) {
-        route = "pre-completion";
+        if (notification.receivedUri !== null) {
+          // Notification arrived during the post-subscribe read window.
+          // Prefer subscription route so the output accurately reflects that
+          // a notification was received rather than misreporting pre-completion.
+          route = "subscription";
+          notificationUri = notification.receivedUri;
+        } else {
+          route = "pre-completion";
+        }
         finalText = postSubscribeText;
       } else {
         try {
