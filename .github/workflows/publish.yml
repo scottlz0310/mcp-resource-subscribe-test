@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish to npm (default: false for dry-run testing)'
+        description: 'Publish to npm (true = publish; false = build/test only, no publish)'
         type: boolean
         default: false
 
