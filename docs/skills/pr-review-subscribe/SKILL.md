@@ -138,6 +138,17 @@ If a wrapper is found and shell execution is allowed:
 npm run probe:subscribe -- --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
 ```
 
+For servers requiring Bearer auth and dynamic resource URIs (e.g., `copilot-review-mcp`):
+
+```bash
+MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
+node dist/src/client/cli.js \
+  --url <mcp-server-url> \
+  --uri <resource_uri> \
+  --skip-resource-list-check \
+  --timeout-ms 900000
+```
+
 3. The wrapper must:
    - Connect to the MCP server
    - Subscribe to `resource_uri`
@@ -384,3 +395,86 @@ In the final response, include:
   - whether `{RSRC}:resources/read` after notification reached a terminal watch state
   - whether `{RSRC}:resources/unsubscribe` completed
 - merge readiness
+
+## Environment Notes: copilot-review-mcp (Confirmed 2026-05-14)
+
+These notes apply when the Copilot review MCP server is `copilot-review-mcp` accessed via
+`mcp-gateway`. They were confirmed by Issue #43 Level 3 E2E test on PR #44.
+
+### Gateway URL
+
+```
+http://127.0.0.1:8080/mcp/copilot-review
+```
+
+`mcp-gateway` must be running. Verify with `curl -s http://127.0.0.1:8080/health` or
+check the process list.
+
+### Authentication
+
+All requests require a valid GitHub OAuth Bearer token:
+
+```bash
+Authorization: Bearer $(gh auth token)
+```
+
+If the token expires mid-session, `mcp-gateway` returns `REAUTH_REQUIRED`. Run
+`gh auth login` to refresh.
+
+### Resource URI Format
+
+Watch resources use dynamic URIs not in `resources/list`:
+
+```
+copilot-review://watch/<watch_id>
+```
+
+`watch_id` is returned by `start_copilot_review_watch`. Always pass
+`--skip-resource-list-check` (or `MCP_PROBE_SKIP_LIST_CHECK=true`) when using
+the probe CLI.
+
+### Confirmed Working Route: SDK Wrapper Subscription (Phase 1S-B2)
+
+The copilot-review-mcp gateway **does support** the MCP `resources/subscribe` +
+`notifications/resources/updated` protocol. The confirmed SDK wrapper command:
+
+```bash
+# Using env var (recommended — avoids token in process list)
+MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
+node dist/src/client/cli.js \
+  --url http://127.0.0.1:8080/mcp/copilot-review \
+  --uri copilot-review://watch/<watch_id> \
+  --skip-resource-list-check \
+  --timeout-ms 900000
+```
+
+Or via vitest E2E (useful for assertion logging):
+
+```bash
+MCP_E2E_URL=http://127.0.0.1:8080/mcp/copilot-review \
+MCP_E2E_TOKEN=$(gh auth token) \
+MCP_E2E_WATCH_ID=<watch_id> \
+npx vitest run test/e2e.test.ts
+```
+
+### Confirmed Successful Output (Level 3, ~84s)
+
+```
+route subscription
+subscribed true
+notification-received true
+unsubscribed true
+error-code null
+```
+
+### Subscription Probe Timeout
+
+Copilot reviews take up to ~15 minutes. Use `--timeout-ms 900000` (15 min).
+The Level 3 test saw notification in ~84 seconds; your timing will vary.
+
+### `skipResourceListCheck` Requirement
+
+The copilot-review-mcp server does **not** return active watch URIs from
+`resources/list`. The probe client's `skipResourceListCheck: true` option
+skips the list check and attempts subscription directly. Without this flag,
+the probe exits with `RESOURCE_NOT_FOUND` immediately.

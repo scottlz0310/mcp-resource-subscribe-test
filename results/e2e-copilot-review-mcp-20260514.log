@@ -49,46 +49,48 @@ Vitest output:
 
 Result: PASS
 
-## Level 3: Full subscribe→notify→re-read flow (PENDING)
+## Level 3: Full subscribe→notify→re-read flow (CONFIRMED PASS)
 
-Status: PENDING — GitHub token expired during session; re-authentication required.
+Status: PASS — Confirmed 2026-05-14 (Issue #43). See test run details below.
 
-Steps to complete Level 3 verification:
-  1. gh auth login      # re-authenticate with GitHub
-  2. Create an active watch for a PR with pending Copilot review:
-       curl -s -X POST http://127.0.0.1:8080/mcp/copilot-review \
-         -H "Authorization: Bearer $(gh auth token)" \
-         -H "Mcp-Session-Id: <session>" \
-         -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"start_copilot_review_watch","arguments":{"owner":"scottlz0310","repo":"mcp-resource-subscriber","pr":40}}}'
-  3. Extract watch_id from response
-  4. Run probe:
-       MCP_E2E_URL=http://127.0.0.1:8080/mcp/copilot-review \
-       MCP_E2E_TOKEN=$(gh auth token) \
-       MCP_E2E_WATCH_ID=<watch_id> \
-       npx vitest run test/e2e.test.ts
-     or via CLI:
-       node dist/src/client/cli.js \
-         --url http://127.0.0.1:8080/mcp/copilot-review \
-         --uri copilot-review://watch/<watch_id> \
-         --auth-token $(gh auth token) \
-         --timeout-ms 900000
+Command used:
+  MCP_E2E_URL=http://127.0.0.1:8080/mcp/copilot-review \
+  MCP_E2E_TOKEN=$(gh auth token) \
+  MCP_E2E_WATCH_ID=cw_1778763854238659497_11 \
+  npx vitest run test/e2e.test.ts
 
-Expected Level 3 output (success path):
-  capabilities {"subscribe":true,"listChanged":true}
-  resource-found true
-  resource-uri copilot-review://watch/<watch_id>
-  server-url http://127.0.0.1:8080/mcp/copilot-review
-  initial
-  <initial resource text>
-  route subscription
-  subscribed true
-  notification-received true
-  unsubscribed true
-  recommended_next_action <action from server>
-  error-code null
-  final
-  <updated resource text>
-  phase-summary route=subscription url=http://127.0.0.1:8080/mcp/copilot-review uri=copilot-review://watch/<watch_id>
+Vitest output:
+  ✓ test/e2e.test.ts (3 tests) 84277ms
+    ✓ E2E: external MCP server (copilot-review-mcp) (3)
+      ✓ Level 1: server is reachable and advertises resources.subscribe=true  48ms
+      ✓ Level 2: RESOURCE_NOT_FOUND returned gracefully for unknown URI  8ms
+      ✓ Level 3: full subscribe→notify→re-read flow against real watch  84219ms
+
+  Test Files  1 passed (1)
+      Tests  3 passed (3)
+  Start at  22:04:22
+  Duration  84.58s (transform 24ms, setup 0ms, import 189ms, tests 84.28s, environment 0ms)
+
+Assertions verified:
+  result.subscribed = true
+  result.route = 'subscription'                  (notification received, not timeout)
+  result.notificationUri = copilot-review://watch/cw_1778763854238659497_11
+  result.resourceFound = true
+  result.finalText truthy                        (re-read after notification succeeded)
+  result.unsubscribed = true
+  result.errorCode = null
+
+PR used for verification: #44 (test/level3-e2e-issue-43)
+Watch ID: cw_1778763854238659497_11
+Route: sdk-wrapper subscription (MCP SDK resources/subscribe + notifications/resources/updated)
+
+Alternative CLI invocation (equivalent):
+  MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
+  node dist/src/client/cli.js \
+    --url http://127.0.0.1:8080/mcp/copilot-review \
+    --uri copilot-review://watch/<watch_id> \
+    --skip-resource-list-check \
+    --timeout-ms 900000
 
 ## Gaps / Issues Identified
 
@@ -106,15 +108,13 @@ Expected Level 3 output (success path):
 
 ## Go / No-go Recommendation
 
-**GO** for npm publish with the following notes:
+**GO** for npm publish — all three levels confirmed PASS.
 
 ✅ The probe client connects to copilot-review-mcp (behind mcp-gateway) with Bearer auth.
 ✅ Server capabilities (`subscribe: true`, `listChanged: true`) are correctly advertised.
 ✅ RESOURCE_NOT_FOUND is handled gracefully with correct exit code and error-code output.
 ✅ The new --auth-token flag enables use against any authenticated MCP server.
-⏳ Level 3 (full subscribe→notify flow) requires re-authentication; expected to pass once
-   a valid watch is available (protocol path is identical to the bundled test server path,
-   which has 12/12 tests passing).
+✅ Level 3 (full subscribe→notify→re-read flow) CONFIRMED 2026-05-14 (Issue #43).
+   route=subscription, subscribed=true, notificationUri confirmed, unsubscribed=true, errorCode=null.
 
-The only capability gap is the expired GitHub token (environment issue, not a code bug).
-mcp-resource-subscriber is ready for npm publish.
+All three levels pass. mcp-resource-subscriber is ready for npm publish.
