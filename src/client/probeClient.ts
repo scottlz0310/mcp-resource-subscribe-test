@@ -11,7 +11,10 @@ export interface SubscribeProbeOptions {
   timeoutMs?: number;
   clientName?: string;
   clientVersion?: string;
-  /** Extra HTTP headers to include in every request (e.g. Authorization). */
+  /** Extra HTTP headers to include in every request (e.g. Authorization).
+   * Keys and values must be valid HTTP header names/values; invalid values
+   * will cause the underlying transport to throw at request time.
+   */
   requestHeaders?: Record<string, string>;
   /**
    * When true, skip the resources/list check and assume the URI exists.

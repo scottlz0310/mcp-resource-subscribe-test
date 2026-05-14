@@ -36,6 +36,9 @@ describe.skipIf(!E2E_URL)("E2E: external MCP server (copilot-review-mcp)", () =>
     });
 
     expect(result.capabilities).toMatchObject({ subscribe: true });
+    // RESOURCE_NOT_FOUND confirms the probe completed the capabilities handshake
+    // before failing on the list check — i.e. the server was reachable.
+    expect(result.errorCode).toBe("RESOURCE_NOT_FOUND");
   }, 15_000);
 
   it("Level 2: RESOURCE_NOT_FOUND returned gracefully for unknown URI", async () => {
@@ -54,6 +57,9 @@ describe.skipIf(!E2E_URL)("E2E: external MCP server (copilot-review-mcp)", () =>
   it.skipIf(!E2E_WATCH_ID)(
     "Level 3: full subscribe→notify→re-read flow against real watch",
     async () => {
+      // NOTE: These assertions have not yet been verified against the real
+      // copilot-review-mcp server. They represent the expected happy-path
+      // contract. If they fail, adjust after confirming actual server behavior.
       const uri = `copilot-review://watch/${E2E_WATCH_ID}`;
       const result = await runSubscribeProbe({
         url,
