@@ -57,6 +57,10 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("                      Env: MCP_PROBE_URI");
   console.log("  --auth-token <tok>  Bearer token for Authorization header");
   console.log("                      Env: MCP_PROBE_AUTH_TOKEN");
+  console.log("  --skip-resource-list-check");
+  console.log("                      Skip resources/list and assume the URI exists.");
+  console.log("                      Use for servers with dynamic resources not in list.");
+  console.log("                      Env: MCP_PROBE_SKIP_LIST_CHECK=true");
   console.log("  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)");
   console.log("                      Env: MCP_PROBE_TIMEOUT_MS");
   console.log("  --version, -v       Print version and exit");
@@ -90,7 +94,9 @@ function parseOptions() {
   const requestHeaders: Record<string, string> | undefined = authToken
     ? { Authorization: `Bearer ${authToken}` }
     : undefined;
-  return { url, uri, timeoutMs, requestHeaders };
+  const skipResourceListCheck =
+    args.includes("--skip-resource-list-check") || process.env.MCP_PROBE_SKIP_LIST_CHECK === "true";
+  return { url, uri, timeoutMs, requestHeaders, skipResourceListCheck };
 }
 
 function extractRecommendedAction(text: string): string | null {
@@ -145,6 +151,7 @@ try {
       uri: options.uri,
       timeoutMs: options.timeoutMs,
       requestHeaders: options.requestHeaders,
+      skipResourceListCheck: options.skipResourceListCheck,
     });
     printResult(result, options.url, options.uri);
     if (result.errorCode) {

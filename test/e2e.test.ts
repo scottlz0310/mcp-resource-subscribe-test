@@ -60,6 +60,7 @@ describe.skipIf(!E2E_URL)("E2E: external MCP server (copilot-review-mcp)", () =>
         uri,
         timeoutMs: 900_000, // 15 minutes — Copilot review may take time
         requestHeaders,
+        skipResourceListCheck: true, // copilot-review-mcp does not list dynamic watch URIs
       });
 
       expect(result.resourceFound).toBe(true);
