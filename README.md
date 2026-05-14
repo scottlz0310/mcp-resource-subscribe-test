@@ -55,6 +55,14 @@ mcp-resource-subscriber --url http://127.0.0.1:8089/mcp
   --uri <uri>         Resource URI to subscribe to
                       Default: test://review/status (bundled test server only)
                       Env: MCP_PROBE_URI
+  --auth-token <tok>  Bearer token for Authorization header
+                      Prefer MCP_PROBE_AUTH_TOKEN env var (flag is visible in
+                      process lists and may be stored in shell history)
+                      Env: MCP_PROBE_AUTH_TOKEN (recommended)
+  --skip-resource-list-check
+                      Skip resources/list and assume the URI exists.
+                      Use for servers with dynamic resources not in list.
+                      Env: MCP_PROBE_SKIP_LIST_CHECK=true
   --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)
                       Env: MCP_PROBE_TIMEOUT_MS
   --version, -v       Print version and exit
@@ -287,7 +295,7 @@ npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp
 After `npm run build`, the same client can be run directly with Node:
 
 ```bash
-node dist/scripts/subscribe-client.js --url http://127.0.0.1:8089/mcp
+node dist/src/client/cli.js --url http://127.0.0.1:8089/mcp
 ```
 
 This client is separate from any AI client's native MCP surface. For Codex CLI, it demonstrates a reproducible agent-driven SDK workaround: if the agent has shell, Node.js, local dependency, and localhost network access, it can run this client to call `resources/subscribe`, receive `notifications/resources/updated`, and re-read the updated resource.
