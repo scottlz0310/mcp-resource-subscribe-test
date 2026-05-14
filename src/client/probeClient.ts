@@ -83,6 +83,11 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
     });
   });
 
+  // Attach a no-op rejection handler so that if the timeout fires while the
+  // caller is in a non-awaiting code path (e.g., the pre-completion branch),
+  // Node.js does not report an unhandled promise rejection.
+  promise.catch(() => {});
+
   return {
     promise,
     cancel: () => {
