@@ -276,6 +276,24 @@ describe("MCP resource subscription probe", () => {
     );
   });
 
+  it("runs the probe with skipResourceListCheck bypassing the resources/list call", async () => {
+    const logs: string[] = [];
+    const url = await startServer(logs);
+
+    const result = await runSubscribeProbe({
+      url: url.toString(),
+      timeoutMs: 2_000,
+      skipResourceListCheck: true,
+    });
+
+    expect(result.resourceFound).toBe(true);
+    expect(result.subscribed).toBe(true);
+    expect(result.route).toBe("subscription");
+    expect(result.errorCode).toBeNull();
+    // Verify the resources/list round-trip was skipped
+    expect(logs).not.toContain("[resources/list] requested");
+  });
+
   it("returns RESOURCE_NOT_FOUND errorCode when resource URI does not exist", async () => {
     const logs: string[] = [];
     const url = await startServer(logs);
