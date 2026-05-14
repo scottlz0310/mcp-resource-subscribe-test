@@ -25,7 +25,8 @@ Level scoring is resource-method based: tool discovery and `[tools/call]` entrie
 ## Summary
 
 Clients re-verified in Round 2 are those that reached only Level 1 in Round 1 due to the resource-only server issue.  
-Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose) are not expected to change and are omitted unless regression is suspected.
+Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose) are not expected to change and are omitted unless regression is suspected.  
+Clients not included in Round 1 (e.g., Claude Code web) were newly tested in Round 2.
 
 | Client | Round 1 Level | Round 2 Level | `tools/list` OK | `resources/list` | `resources/subscribe` | Change |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -37,7 +38,7 @@ Clients that already reached Level 3 in Round 1 (Gemini CLI, Claude Code, Goose)
 | GitHub Copilot CLI | 1 | 1 | YES | NO | NO | Tool path now works; resource subscription not accessed by agent |
 | GitHub Copilot CLI SDK workaround | N/A | 7 | N/A | YES | YES | shell-driven SDK client can subscribe, receive update notification, and re-read |
 | Claude Code (web) — native | not tested | 1 | YES | NO | NO | MCP tools exposed via tool surface; resources/list and resources/subscribe not accessible natively |
-| Claude Code (web) — manual Bash/curl | not tested | 7 | N/A | YES | YES | agent-driven curl achieves full subscribe + notification + re-read via SSE stream |
+| Claude Code (web) — manual Bash/curl | not tested | 7 | YES | YES | YES | agent-driven curl achieves full subscribe + notification + re-read via SSE stream |
 
 ## Codex CLI
 
