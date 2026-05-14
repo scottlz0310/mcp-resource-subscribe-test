@@ -15,4 +15,4 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 EXPOSE 8089
-CMD ["node", "dist/src/index.js"]
+CMD ["node", "dist/src/server/index.js"]

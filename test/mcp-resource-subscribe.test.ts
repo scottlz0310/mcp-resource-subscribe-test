@@ -17,15 +17,15 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TestConfig } from "../src/config.js";
-import { createMcpHttpApp } from "../src/httpServer.js";
-import { runSubscribeProbe } from "../src/probeClient.js";
+import { runSubscribeProbe } from "../src/client/probeClient.js";
+import type { TestConfig } from "../src/server/config.js";
+import { createMcpHttpApp } from "../src/server/httpServer.js";
 import {
   createInitialReviewStatus,
   REVIEW_STATUS_RESOURCE,
   REVIEW_STATUS_URI,
   renderReviewStatus,
-} from "../src/resourceState.js";
+} from "../src/server/resourceState.js";
 
 const TEST_CONFIG: TestConfig = {
   port: 0,

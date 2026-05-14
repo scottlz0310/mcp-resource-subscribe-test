@@ -5,11 +5,10 @@
   "type": "module",
   "license": "MIT",
   "bin": {
-    "mcp-resource-subscriber": "dist/src/cli.js"
+    "mcp-resource-subscriber": "dist/src/client/cli.js"
   },
   "files": [
-    "dist/",
-    "!dist/test/",
+    "dist/src/client/",
     "README.md",
     "LICENSE"
   ],
@@ -22,8 +21,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "start": "node dist/src/server/index.js",
+    "dev": "tsx src/server/index.ts",
     "probe:subscribe": "tsx scripts/subscribe-client.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

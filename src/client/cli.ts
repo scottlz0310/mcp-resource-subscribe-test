@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runSubscribeProbe } from "./probeClient.js";
-import { REVIEW_STATUS_URI } from "./resourceState.js";
+
+// Default URI for the bundled reference server
+const REVIEW_STATUS_URI = "test://review/status";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Try compiled path (dist/src/) first, then source path (src/) for tsx direct-run
