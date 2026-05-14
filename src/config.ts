@@ -38,13 +38,7 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
 }
 
 function parseLogLevel(value: string | undefined): LogLevel {
-  if (
-    value === "debug" ||
-    value === "info" ||
-    value === "warn" ||
-    value === "error" ||
-    value === "silent"
-  ) {
+  if (value === "debug" || value === "info" || value === "warn" || value === "error" || value === "silent") {
     return value;
   }
 
@@ -67,16 +61,10 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): TestConfig 
   return {
     port: parseNumber(env.MCP_TEST_PORT, DEFAULT_CONFIG.port),
     mcpPath: parseMcpPath(env.MCP_TEST_PATH, DEFAULT_CONFIG.mcpPath),
-    updateDelaySeconds: parseNumber(
-      env.MCP_TEST_UPDATE_DELAY_SECONDS,
-      DEFAULT_CONFIG.updateDelaySeconds,
-    ),
+    updateDelaySeconds: parseNumber(env.MCP_TEST_UPDATE_DELAY_SECONDS, DEFAULT_CONFIG.updateDelaySeconds),
     initialStatus: env.MCP_TEST_INITIAL_STATUS ?? DEFAULT_CONFIG.initialStatus,
     updatedStatus: env.MCP_TEST_UPDATED_STATUS ?? DEFAULT_CONFIG.updatedStatus,
-    sendListChanged: parseBoolean(
-      env.MCP_TEST_SEND_LIST_CHANGED,
-      DEFAULT_CONFIG.sendListChanged,
-    ),
+    sendListChanged: parseBoolean(env.MCP_TEST_SEND_LIST_CHANGED, DEFAULT_CONFIG.sendListChanged),
     logLevel: parseLogLevel(env.MCP_TEST_LOG_LEVEL),
   };
 }

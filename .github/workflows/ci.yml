@@ -15,6 +15,12 @@ jobs:
           node-version: 26.1.0
           cache: npm
       - run: npm ci
+      - run: npm run check
       - run: npm run build
-      - run: npm test
+      - run: npm run test:coverage
+      - uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
       - run: docker build .

@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
   ErrorCode,
   ListResourcesRequestSchema,
@@ -8,14 +7,15 @@ import {
   SubscribeRequestSchema,
   UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import type { TestConfig } from "./config.js";
 import type { LogSink } from "./logger.js";
 import {
   REVIEW_STATUS_MIME_TYPE,
   REVIEW_STATUS_RESOURCE,
   REVIEW_STATUS_URI,
-  renderReviewStatus,
   ReviewStatusStore,
+  renderReviewStatus,
 } from "./resourceState.js";
 
 export interface ProbeServer {
@@ -25,17 +25,11 @@ export interface ProbeServer {
 
 function assertReviewStatusUri(uri: string): void {
   if (uri !== REVIEW_STATUS_URI) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Unknown resource URI: ${uri}`,
-    );
+    throw new McpError(ErrorCode.InvalidParams, `Unknown resource URI: ${uri}`);
   }
 }
 
-export function createProbeServer(
-  config: TestConfig,
-  log: LogSink = () => undefined,
-): ProbeServer {
+export function createProbeServer(config: TestConfig, log: LogSink = () => undefined): ProbeServer {
   const server = new McpServer(
     {
       name: "mcp-resource-subscribe-test",
@@ -58,8 +52,7 @@ export function createProbeServer(
   server.registerTool(
     "get_review_status",
     {
-      description:
-        `Returns the current review status. Same data as reading the ${REVIEW_STATUS_URI} resource.`,
+      description: `Returns the current review status. Same data as reading the ${REVIEW_STATUS_URI} resource.`,
       inputSchema: z.object({}),
     },
     async () => {
@@ -83,9 +76,7 @@ export function createProbeServer(
         log(`[resource/update] uri=${REVIEW_STATUS_URI} version=${state.version}`);
 
         if (subscriptions.has(REVIEW_STATUS_URI)) {
-          log(
-            `[notification/send] notifications/resources/updated uri=${REVIEW_STATUS_URI}`,
-          );
+          log(`[notification/send] notifications/resources/updated uri=${REVIEW_STATUS_URI}`);
           await server.server.sendResourceUpdated({ uri: REVIEW_STATUS_URI });
         }
 
