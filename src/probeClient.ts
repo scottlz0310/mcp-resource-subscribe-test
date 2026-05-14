@@ -17,6 +17,10 @@ export interface SubscribeProbeResult {
   initialText: string;
   notificationUri: string;
   finalText: string;
+  route: "subscription" | "timeout";
+  subscribed: boolean;
+  unsubscribed: boolean;
+  errorCode: string | null;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -87,35 +91,76 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
     const capabilities = client.getServerCapabilities()?.resources ?? null;
     const resources = await client.listResources();
     const resourceFound = resources.resources.some((resource) => resource.uri === uri);
+
     if (!resourceFound) {
-      throw new Error(`Resource not found: ${uri}`);
+      return {
+        capabilities,
+        resourceFound: false,
+        initialText: "",
+        notificationUri: "",
+        finalText: "",
+        route: "timeout",
+        subscribed: false,
+        unsubscribed: false,
+        errorCode: "RESOURCE_NOT_FOUND",
+      };
     }
 
     const initial = await client.readResource({ uri });
+    const initialText = getResourceText(initial);
     const notification = waitForUpdatedNotification(client, uri, timeoutMs);
     let subscribed = false;
+    let unsubscribed = false;
     let notificationUri = "";
     let finalText = "";
+    let errorCode: string | null = null;
+    let route: "subscription" | "timeout" = "timeout";
 
     try {
       await client.subscribeResource({ uri });
       subscribed = true;
+    } catch {
+      notification.cancel();
+      return {
+        capabilities,
+        resourceFound: true,
+        initialText,
+        notificationUri: "",
+        finalText: "",
+        route: "timeout",
+        subscribed: false,
+        unsubscribed: false,
+        errorCode: "SUBSCRIPTION_FAILED",
+      };
+    }
+
+    try {
       notificationUri = await notification.promise;
+      route = "subscription";
       const final = await client.readResource({ uri });
       finalText = getResourceText(final);
+    } catch {
+      errorCode = "NOTIFICATION_TIMEOUT";
     } finally {
       notification.cancel();
-      if (subscribed) {
+      try {
         await client.unsubscribeResource({ uri });
+        unsubscribed = true;
+      } catch {
+        // ignore unsubscribe errors
       }
     }
 
     return {
       capabilities,
-      resourceFound,
-      initialText: getResourceText(initial),
+      resourceFound: true,
+      initialText,
       notificationUri,
       finalText,
+      route,
+      subscribed,
+      unsubscribed,
+      errorCode,
     };
   } finally {
     await client.close();

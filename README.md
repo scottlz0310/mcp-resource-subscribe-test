@@ -3,14 +3,88 @@
 CLI probe for MCP `resources/subscribe` — connects to any MCP Streamable HTTP server, subscribes to a resource, receives the live update notification, and re-reads the updated content.
 
 ```bash
-# Coming soon — CLI implementation is in progress
-pnpm dlx mcp-resource-subscriber --url http://127.0.0.1:8089/mcp
-
-# Current workaround (requires a local clone):
-npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp
+npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
 ```
 
 > **Note**: A reference MCP test server used during compatibility verification is also included in this repository (Docker Compose). See the sections below for server setup and verification history.
+
+---
+
+## CLI Usage
+
+### Against `copilot-review-mcp`
+
+```bash
+mcp-resource-subscriber \
+  --url http://127.0.0.1:8080/mcp/copilot-review \
+  --uri copilot-review://watch/<watch_id> \
+  --timeout-ms 900000
+```
+
+`copilot-review-mcp` is the `@scottlz0310/copilot-review-mcp` server. Replace `<watch_id>` with the ID returned by `start_copilot_review_watch`.
+
+### Against the bundled test server
+
+```bash
+# Start the test server first:
+docker compose up --build
+# or: npm run dev
+
+mcp-resource-subscriber --url http://127.0.0.1:8089/mcp
+```
+
+> **Note**: `test://review/status` is the default resource URI and is **only meaningful against the bundled test server**. For any other MCP server, always pass `--uri` explicitly.
+
+### Options
+
+```
+  --url <url>         MCP server Streamable HTTP endpoint (required)
+                      Env: MCP_PROBE_URL
+  --uri <uri>         Resource URI to subscribe to
+                      Default: test://review/status (bundled test server only)
+                      Env: MCP_PROBE_URI
+  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)
+                      Env: MCP_PROBE_TIMEOUT_MS
+  --version, -v       Print version and exit
+  --help, -h          Print this help and exit
+```
+
+### Structured output
+
+Every run emits machine-parseable lines:
+
+```
+capabilities {"subscribe":true,"listChanged":true}
+resource-found true
+initial
+<initial resource text>
+route subscription
+subscribed true
+notification-received true
+unsubscribed true
+error-code null
+notification <resource-uri>
+final
+<updated resource text>
+phase-summary route=subscription url=<url> uri=<uri>
+```
+
+On failure:
+
+```
+error-code SERVER_URL_UNKNOWN
+phase-summary route=failed url=unknown error-code=SERVER_URL_UNKNOWN
+```
+
+```
+error-code RESOURCE_NOT_FOUND
+phase-summary route=timeout url=<url> uri=<uri> error-code=RESOURCE_NOT_FOUND
+```
+
+```
+error-code NOTIFICATION_TIMEOUT
+phase-summary route=timeout url=<url> uri=<uri> error-code=NOTIFICATION_TIMEOUT
+```
 
 ---
 

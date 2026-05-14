@@ -170,6 +170,10 @@ describe("MCP resource subscription probe", () => {
     expect(result.notificationUri).toBe(REVIEW_STATUS_URI);
     expect(result.finalText).toContain("version: 2");
     expect(result.finalText).toContain("status: reviewed");
+    expect(result.route).toBe("subscription");
+    expect(result.subscribed).toBe(true);
+    expect(result.unsubscribed).toBe(true);
+    expect(result.errorCode).toBeNull();
 
     expect(logs).toEqual(
       expect.arrayContaining([
@@ -179,5 +183,22 @@ describe("MCP resource subscription probe", () => {
         "[resources/unsubscribe] uri=test://review/status",
       ]),
     );
+  });
+
+  it("returns RESOURCE_NOT_FOUND errorCode when resource URI does not exist", async () => {
+    const logs: string[] = [];
+    const url = await startServer(logs);
+
+    const result = await runSubscribeProbe({
+      url: url.toString(),
+      uri: "test://does-not-exist",
+      timeoutMs: 2_000,
+    });
+
+    expect(result.resourceFound).toBe(false);
+    expect(result.errorCode).toBe("RESOURCE_NOT_FOUND");
+    expect(result.route).toBe("timeout");
+    expect(result.subscribed).toBe(false);
+    expect(result.unsubscribed).toBe(false);
   });
 });
