@@ -140,7 +140,7 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
     let notificationUri = "";
     let finalText = "";
     let errorCode: string | null = null;
-    let route: "subscription" | "timeout" = "timeout";
+    let route: "subscription" | "pre-completion" | "timeout" = "timeout";
 
     try {
       await client.subscribeResource({ uri });
@@ -160,44 +160,29 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
       };
     }
 
-    // Immediately read once after subscribe to handle the pre-completion race condition:
-    // if the resource was already updated before our subscription was established
-    // (i.e., the notification fired before we subscribed), we will never receive
-    // that notification. Comparing with initialText detects this window.
-    const postSubscribeRead = await client.readResource({ uri });
-    const postSubscribeText = getResourceText(postSubscribeRead);
-    if (postSubscribeText !== initialText) {
-      notification.cancel();
-      try {
-        await client.unsubscribeResource({ uri });
-        unsubscribed = true;
-      } catch {
-        // ignore unsubscribe errors
-      }
-      return {
-        capabilities,
-        resourceFound: true,
-        initialText,
-        notificationUri: "",
-        finalText: postSubscribeText,
-        route: "pre-completion",
-        subscribed: true,
-        unsubscribed,
-        errorCode: null,
-      };
-    }
-
+    // Wrap all post-subscribe operations in a single try/finally so that
+    // notification.cancel() and unsubscribeResource() always run — even when
+    // the post-subscribe read (pre-completion check) or the final read throws.
     try {
-      notificationUri = await notification.promise;
-      route = "subscription";
-    } catch {
-      errorCode = "NOTIFICATION_TIMEOUT";
-    }
+      // Immediately read once after subscribe to handle the pre-completion race condition:
+      // if the resource was already updated before our subscription was established
+      // (i.e., the notification fired before we subscribed), we will never receive
+      // that notification. Comparing with initialText detects this window.
+      const postSubscribeText = getResourceText(await client.readResource({ uri }));
+      if (postSubscribeText !== initialText) {
+        route = "pre-completion";
+        finalText = postSubscribeText;
+      } else {
+        try {
+          notificationUri = await notification.promise;
+          route = "subscription";
+        } catch {
+          errorCode = "NOTIFICATION_TIMEOUT";
+        }
 
-    try {
-      if (route === "subscription") {
-        const final = await client.readResource({ uri });
-        finalText = getResourceText(final);
+        if (route === "subscription") {
+          finalText = getResourceText(await client.readResource({ uri }));
+        }
       }
     } finally {
       notification.cancel();
