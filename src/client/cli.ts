@@ -55,6 +55,8 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  --uri <uri>         Resource URI to subscribe to");
   console.log("                      Default: test://review/status (bundled test server only)");
   console.log("                      Env: MCP_PROBE_URI");
+  console.log("  --auth-token <tok>  Bearer token for Authorization header");
+  console.log("                      Env: MCP_PROBE_AUTH_TOKEN");
   console.log("  --timeout-ms <ms>   Notification wait timeout in ms (default: 15000)");
   console.log("                      Env: MCP_PROBE_TIMEOUT_MS");
   console.log("  --version, -v       Print version and exit");
@@ -84,7 +86,11 @@ function parseOptions() {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`Invalid --timeout-ms: ${timeoutRaw}`);
   }
-  return { url, uri, timeoutMs };
+  const authToken = readOption("auth-token") ?? process.env.MCP_PROBE_AUTH_TOKEN ?? null;
+  const requestHeaders: Record<string, string> | undefined = authToken
+    ? { Authorization: `Bearer ${authToken}` }
+    : undefined;
+  return { url, uri, timeoutMs, requestHeaders };
 }
 
 function extractRecommendedAction(text: string): string | null {
@@ -134,7 +140,12 @@ try {
         "warning: using default URI test://review/status which is only meaningful against the bundled test server",
       );
     }
-    const result = await runSubscribeProbe({ url: options.url, uri: options.uri, timeoutMs: options.timeoutMs });
+    const result = await runSubscribeProbe({
+      url: options.url,
+      uri: options.uri,
+      timeoutMs: options.timeoutMs,
+      requestHeaders: options.requestHeaders,
+    });
     printResult(result, options.url, options.uri);
     if (result.errorCode) {
       process.exitCode = 1;

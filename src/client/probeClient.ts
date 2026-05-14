@@ -11,6 +11,8 @@ export interface SubscribeProbeOptions {
   timeoutMs?: number;
   clientName?: string;
   clientVersion?: string;
+  /** Extra HTTP headers to include in every request (e.g. Authorization). */
+  requestHeaders?: Record<string, string>;
 }
 
 export interface SubscribeProbeResult {
@@ -87,7 +89,9 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
   });
 
   try {
-    const transport = new StreamableHTTPClientTransport(new URL(options.url));
+    const transport = new StreamableHTTPClientTransport(new URL(options.url), {
+      requestInit: options.requestHeaders ? { headers: options.requestHeaders } : undefined,
+    });
     await client.connect(transport);
 
     const capabilities = client.getServerCapabilities()?.resources ?? null;
