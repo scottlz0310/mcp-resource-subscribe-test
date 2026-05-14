@@ -27,20 +27,23 @@ docker compose up --build      # start reference server on port 8089
 
 ```
 src/
-  index.ts         — entrypoint: reads env config, starts Express HTTP server
-  config.ts        — TestConfig type + configFromEnv() (all env vars parsed here)
-  httpServer.ts    — createMcpHttpApp(): wires McpServer → Express via StreamableHTTP transport
-  mcpServer.ts     — createProbeServer(): registers MCP handlers (list/read/subscribe/unsubscribe + tool)
-  resourceState.ts — ReviewStatusStore (in-memory, version 1→2), renderReviewStatus(), constants
-  probeClient.ts   — runSubscribeProbe(): SDK client that exercises the full flow, returns typed result
-  logger.ts        — createConsoleLogger(config): returns a LogSink that outputs all lines unless logLevel is 'silent' (no level hierarchy filtering)
-  cli.ts           — stub CLI entry (not yet implemented; exits with error unless --help)
+  server/
+    index.ts         — entrypoint: reads env config, starts Express HTTP server
+    config.ts        — TestConfig type + configFromEnv() (all env vars parsed here)
+    httpServer.ts    — createMcpHttpApp(): wires McpServer → Express via StreamableHTTP transport
+    mcpServer.ts     — createProbeServer(): registers MCP handlers (list/read/subscribe/unsubscribe + tool)
+    resourceState.ts — ReviewStatusStore (in-memory, version 1→2), renderReviewStatus(), constants
+    logger.ts        — createConsoleLogger(config): returns a LogSink that outputs all lines unless logLevel is 'silent' (no level hierarchy filtering)
+  client/
+    probeClient.ts   — runSubscribeProbe(): SDK client that exercises the full flow, returns typed result
+    cli.ts           — published bin entry; supports --url, --uri, --auth-token, --skip-resource-list-check, --timeout-ms
 
 scripts/
   subscribe-client.ts  — thin wrapper that calls runSubscribeProbe() with CLI args, prints result
 
 test/
   mcp-resource-subscribe.test.ts  — vitest integration tests (spin up in-process server on port 0)
+  e2e.test.ts                     — E2E tests against external copilot-review-mcp server (requires env vars)
 ```
 
 ## Key Patterns
@@ -91,4 +94,33 @@ Three test cases:
 
 ## CLI Status
 
-`src/cli.ts` (the published bin) is a **stub** — it prints an error and exits 1. The actual probe functionality is in `scripts/subscribe-client.ts`, run via `npm run probe:subscribe`. Full CLI implementation is pending (tracked in GitHub Issues).
+`src/client/cli.ts` is the published bin entry (`dist/src/client/cli.js`). It supports `--url`, `--uri`, `--auth-token`, `--skip-resource-list-check`, `--timeout-ms`, `--version`, and `--help`. The actual probe functionality is in `src/client/probeClient.ts`.
+
+## Secret and Log Handling
+
+Before posting logs, command output, PR descriptions, issue comments, review summaries, or E2E reports to GitHub, redact all secrets.
+
+Never paste raw values that look like:
+
+- GitHub tokens: `ghp_`, `gho_`, `github_pat_`
+- npm tokens: `npm_`
+- Bearer tokens or OAuth tokens
+- `Authorization:` header values
+- `MCP_PROBE_AUTH_TOKEN`, `MCP_E2E_TOKEN`, `NODE_AUTH_TOKEN`
+- cookies, session IDs, refresh tokens, private keys, or client secrets
+
+Use placeholders instead:
+
+- `<redacted>`
+- `<token>`
+- `Bearer <redacted>`
+- `$(gh auth token)` in command examples
+
+If a secret is accidentally posted publicly, treat it as compromised even if it is edited out later. Immediately rotate or revoke the token, then replace the public text with a placeholder.
+
+Do not include raw environment dumps in PRs, issues, comments, or committed logs.
+
+For E2E evidence, preserve protocol facts but redact credentials:
+
+- Keep: server URL, resource URI, route, subscribed, notification-received, unsubscribed, error-code, phase-summary
+- Redact: Authorization headers, token values, cookies, sessions, OAuth responses, refresh tokens
