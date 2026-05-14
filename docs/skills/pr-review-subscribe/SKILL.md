@@ -138,6 +138,12 @@ If a wrapper is found and shell execution is allowed:
 pnpm dlx mcp-resource-subscriber --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
 ```
 
+If `pnpm` is unavailable, substitute `npx`:
+
+```bash
+npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
+```
+
 For servers requiring Bearer auth and dynamic resource URIs (e.g., `copilot-review-mcp`):
 
 ```bash
@@ -148,6 +154,10 @@ pnpm dlx mcp-resource-subscriber \
   --skip-resource-list-check \
   --timeout-ms 900000
 ```
+
+> **Note — version pinning**: `pnpm dlx` / `npx` always fetch the latest published version.
+> When testing unreleased local changes, use `node dist/src/client/cli.js` instead
+> (requires `npm ci && npm run build` first).
 
 3. The wrapper must:
    - Connect to the MCP server
@@ -447,6 +457,8 @@ pnpm dlx mcp-resource-subscriber \
   --skip-resource-list-check \
   --timeout-ms 900000
 ```
+
+If `pnpm` is unavailable, substitute `npx` for `pnpm dlx`.
 
 Or via vitest E2E (useful for assertion logging):
 
