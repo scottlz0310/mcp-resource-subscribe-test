@@ -158,7 +158,7 @@ async function startSubscribeRejectingServer(): Promise<string> {
 }
 
 describe("MCP resource subscription probe", () => {
-  it("exposes get_review_status in tools/listand returns status text on tools/call", async () => {
+  it("exposes get_review_status in tools/list and returns status text on tools/call", async () => {
     const logs: string[] = [];
     const url = await startServer(logs);
     const client = new Client({ name: "test-tool-client", version: "0.1.0" });

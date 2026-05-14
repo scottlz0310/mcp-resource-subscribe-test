@@ -141,12 +141,12 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
       errorCode = "NOTIFICATION_TIMEOUT";
     }
 
-    if (route === "subscription") {
-      const final = await client.readResource({ uri });
-      finalText = getResourceText(final);
-    }
-
-    {
+    try {
+      if (route === "subscription") {
+        const final = await client.readResource({ uri });
+        finalText = getResourceText(final);
+      }
+    } finally {
       notification.cancel();
       try {
         await client.unsubscribeResource({ uri });
