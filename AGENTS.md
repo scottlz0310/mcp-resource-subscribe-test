@@ -5,7 +5,7 @@
 This repository is a **compatibility lab** for MCP `resources/subscribe`. It contains two things:
 
 1. **A reference MCP Streamable HTTP server** — exposes one resource (`test://review/status`) that updates after a client subscribes, then sends `notifications/resources/updated`.
-2. **A reusable subscription probe client** (`src/probeClient.ts`) — exercises the full subscribe→notify→re-read flow against any running server.
+2. **A reusable subscription probe client** (`src/client/probeClient.ts`) — exercises the full subscribe→notify→re-read flow against any running server.
 
 The goal is reproducible testing of whether CLI AI agents (Codex, Gemini, Claude Code, Crush, etc.) correctly handle MCP resource subscriptions.
 
@@ -21,7 +21,7 @@ npm run probe:subscribe -- --url http://127.0.0.1:8089/mcp  # run probe client a
 docker compose up --build      # start reference server on port 8089
 ```
 
-**Node requirement**: `>=24.15.0` (enforced in `package.json` engines and CI).
+**Node requirement**: `>=26.0.0` (enforced in `package.json` engines and CI).
 
 ## Architecture
 
@@ -48,7 +48,7 @@ test/
 
 ## Key Patterns
 
-**Dual-role repo**: `src/index.ts` (server) and `src/probeClient.ts` (client) are both first-class. The server is for Docker/manual testing; the probe client is published in the package (`dist/src/probeClient.js`) but not exposed via a formal `exports` or `main` entry point.
+**Dual-role repo**: `src/server/` (server) and `src/client/` (client) are both first-class. The server is for Docker/manual testing; the probe client is published in the package (`dist/src/client/probeClient.js`) and the CLI bin is `dist/src/client/cli.js`.
 
 **`createProbeServer()` triggers the update only on subscribe**: `scheduleUpdate()` is called inside the `SubscribeRequestSchema` handler. The timer fires after `updateDelaySeconds` seconds. In tests, this is set to `0.05` so tests run fast — don't use the production default (5s) in tests.
 
@@ -58,7 +58,7 @@ test/
 
 **Imports use `.js` extensions**: TypeScript is compiled with `moduleResolution: NodeNext`. All relative imports must end in `.js` even in `.ts` source files.
 
-**`tsconfig.json` `rootDir` is `.`**: Both `src/`, `test/`, and `scripts/` are compiled to `dist/` preserving the same subdirectory structure. `dist/src/cli.js` is the published bin entry.
+**`tsconfig.json` `rootDir` is `.`**: Both `src/`, `test/`, and `scripts/` are compiled to `dist/` preserving the same subdirectory structure. `dist/src/client/cli.js` is the published bin entry.
 
 ## Configuration (Environment Variables)
 

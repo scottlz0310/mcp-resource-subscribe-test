@@ -4,7 +4,7 @@ Use this directory to record client compatibility findings.
 
 - [`compatibility-matrix.md`](compatibility-matrix.md) — Round 1 summary (resource-only server)
 - [`compatibility-matrix-v2.md`](compatibility-matrix-v2.md) — Round 2 summary (tool + resource server)
-- [`e2e-copilot-review-mcp-20260514.log`](e2e-copilot-review-mcp-20260514.log) — E2E session log against copilot-review-mcp (Level 1/2 confirmed; Level 3 pending)
+- [`e2e-copilot-review-mcp-20260514.log`](e2e-copilot-review-mcp-20260514.log) — E2E session log against copilot-review-mcp (Level 1/2/3 confirmed; all PASS — Issue #43)
 
 ## Recording Guidelines
 

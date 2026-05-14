@@ -423,7 +423,7 @@ If the token expires mid-session, `mcp-gateway` returns `REAUTH_REQUIRED`. Run
 
 ### Resource URI Format
 
-Watch resources use dynamic URIs not in `resources/list`:
+Watch resources use dynamic URIs that appear in `resources/list` only while the watch is active, but may not be listed immediately after starting:
 
 ```
 copilot-review://watch/<watch_id>
@@ -474,7 +474,9 @@ The Level 3 test saw notification in ~84 seconds; your timing will vary.
 
 ### `skipResourceListCheck` Requirement
 
-The copilot-review-mcp server does **not** return active watch URIs from
-`resources/list`. The probe client's `skipResourceListCheck: true` option
-skips the list check and attempts subscription directly. Without this flag,
-the probe exits with `RESOURCE_NOT_FOUND` immediately.
+Watch URIs appear in `resources/list` only while the watch is active, but
+there is a timing window where the URI may not be listed immediately after
+`start_copilot_review_watch` returns. The probe client's
+`skipResourceListCheck: true` option skips the list check and attempts
+subscription directly. Without this flag, the probe may exit with
+`RESOURCE_NOT_FOUND` if the watch has not yet been reflected in the list.
