@@ -50,6 +50,18 @@ Phase 0 -> Phase 1S -> Phase 2 -> Phase 3 -> Phase 4 -> Phase 5 -> Phase 6
                  |                                      v
                  +--------------------------------------+
                          READY_TO_MERGE -> Phase 6.5 -> Phase 6.6 -> Phase 7 -> Phase 8
+
+Phase 1S detail:
+  1S-A: Start Watch
+  1S-B: Native resources/subscribe  --> success: wait for notification
+         |
+         | unavailable or failed
+         v
+  1S-B2: SDK Wrapper subscription   --> success: run wrapper, wait for output
+         |
+         | not found or failed
+         v
+  1S-C: Fallback Polling            (last resort only)
 ```
 
 ## Phase 0: Snapshot
@@ -77,9 +89,9 @@ Record:
 
 If the response lacks `resource_uri`, construct it from the configured template in `references/tool-template.md`. If no reliable resource URI can be obtained, use fallback polling.
 
-### 1S-B: Subscribe To Watch Resource
+### 1S-B: Subscribe To Watch Resource (Native)
 
-Primary route:
+Attempt native subscription first:
 
 1. Use `{RSRC}:resources/subscribe` on `resource_uri`.
 2. Wait for `notifications/resources/updated` for that same `resource_uri`.
@@ -105,14 +117,52 @@ Action table:
 
 Do not poll while subscription is healthy. A periodic read without a notification is allowed only as a liveness check after a long quiet period, not as the main signal.
 
+If native `{RSRC}:resources/subscribe` is unavailable or fails, go to **1S-B2** before falling back to polling.
+
+### 1S-B2: SDK Wrapper Subscription
+
+**Check for an SDK wrapper before falling back to polling.** This step is mandatory when native subscription is unavailable.
+
+Look for a project-provided MCP subscription wrapper by inspecting the repository:
+
+1. Check `package.json` scripts for entries like `probe:subscribe`, `subscribe-client`, or similar.
+2. Check `scripts/` or `bin/` directories for a Node.js or other runtime MCP client.
+3. Check `AGENTS.md`, `README.md`, or `docs/` for documented SDK wrapper commands.
+
+If a wrapper is found and shell execution is allowed:
+
+1. Identify the MCP server URL (from env, config, or a running Docker Compose service).
+2. Run the wrapper with the `resource_uri` from 1S-A. Example pattern from `references/tool-template.md`:
+
+```bash
+npm run probe:subscribe -- --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
+```
+
+3. The wrapper must:
+   - Connect to the MCP server
+   - Subscribe to `resource_uri`
+   - Block until `notifications/resources/updated` is received
+   - Re-read the resource after notification
+   - Return `recommended_next_action`
+4. Parse the output and follow the same action table as 1S-B.
+
+Report the route as `sdk-wrapper subscription route` in the final summary.
+
+**Do not skip to fallback polling without first attempting 1S-B2** when shell access is available.
+
+Proceed to 1S-C only if:
+
+- No SDK wrapper is found in the repository.
+- Shell execution is not permitted.
+- The SDK wrapper fails to connect or exits with an error.
+
 ### 1S-C: Fallback Polling
 
-Use fallback polling only if one of these is true:
+Use fallback polling only if **all of the following are true**:
 
-- The client exposes no `resources/subscribe` route.
-- Subscribing fails with an unsupported-method or transport error.
-- No `resource_uri` is available.
-- The subscription times out or stops receiving updates while the watch is still active.
+- The client exposes no `resources/subscribe` route (1S-B failed or was unavailable).
+- No SDK wrapper was found or executable (1S-B2 failed or was unavailable).
+- No `resource_uri` is available, or the subscription times out.
 
 Fallback loop:
 
@@ -120,7 +170,7 @@ Fallback loop:
 2. Call `{CRM}:get_copilot_review_watch_status`.
 3. Follow its `recommended_next_action` using the same action table.
 
-Label the final report clearly as `subscription route` or `fallback polling route`.
+Label the final report clearly as `native subscription route`, `sdk-wrapper subscription route`, or `fallback polling route`.
 
 ### 1S-D: Timeout
 
@@ -263,7 +313,7 @@ Post a PR comment through `{GH}:add_issue_comment`:
 ## Review Cycle Summary
 
 ### Route
-- Completion wait: subscription route | fallback polling route
+- Completion wait: native subscription route | sdk-wrapper subscription route | fallback polling route
 - Watch resource: <resource_uri or N/A>
 - Watch ID: <watch_id or N/A>
 - Notification received: yes | no | N/A
@@ -304,7 +354,7 @@ If any condition is missing, report it instead of merging.
 In the final response, include:
 
 - PR URL
-- whether the subscription route was used or fallback polling was used
+- which route was used: native subscription, sdk-wrapper subscription, or fallback polling
 - `resource_uri` and `watch_id` when available
 - commits pushed
 - CI status
