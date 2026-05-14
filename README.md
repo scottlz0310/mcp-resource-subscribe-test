@@ -2,11 +2,23 @@
 
 CLI probe for MCP `resources/subscribe` — connects to any MCP Streamable HTTP server, subscribes to a resource, receives the live update notification, and re-reads the updated content.
 
+---
+
+## Install
+
 ```bash
+# one-off (no install):
 npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
+
+# or with pnpm:
+pnpm dlx mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
+
+# or install globally:
+npm install -g mcp-resource-subscriber
+mcp-resource-subscriber --url <mcp-server-url> --uri <resource-uri>
 ```
 
-> **Note**: A reference MCP test server used during compatibility verification is also included in this repository (Docker Compose). See the sections below for server setup and verification history.
+> **Note**: A reference MCP test server used during compatibility verification is also included in this repository (Docker Compose). See the [Lab Server](#lab-server) section below.
 
 ---
 
@@ -92,6 +104,8 @@ phase-summary route=timeout url=<url> uri=<uri> error-code=NOTIFICATION_TIMEOUT
 ```
 
 ---
+
+## Lab Server
 
 Minimal MCP Streamable HTTP server for testing whether MCP clients correctly handle `resources/subscribe` and `notifications/resources/updated`.
 
@@ -288,74 +302,6 @@ Record results in [`results/compatibility-matrix.md`](results/compatibility-matr
 
 Reusable Codex skill templates are tracked under [`docs/skills`](docs/skills). The `pr-review-subscribe` template documents a PR review cycle that uses MCP `resources/subscribe` as the primary wait route and polling only as fallback.
 
-## Client Compatibility Notes
+## Client Compatibility
 
-### Codex CLI
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### Gemini CLI
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### OpenCode
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### GitHub Copilot CLI
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### Claude Code
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### Goose
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
-
-### Crush
-
-- MCP connection:
-- Does it call `resources/list`?
-- Does it call `resources/read`?
-- Does it call `resources/subscribe`?
-- Does it receive `notifications/resources/updated`?
-- Does it re-read the resource after update?
-- Notes:
+See [`results/compatibility-matrix-v2.md`](results/compatibility-matrix-v2.md) for the current Round 2 compatibility matrix (tool + resource testing) across Codex CLI, Gemini CLI, OpenCode, GitHub Copilot CLI, Claude Code, Goose, and Crush.
