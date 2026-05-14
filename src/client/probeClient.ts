@@ -55,24 +55,19 @@ function getResourceText(result: Awaited<ReturnType<Client["readResource"]>>): s
 }
 
 interface NotificationWaiter {
-  promise: Promise<string>;
-  cancel: () => void;
+  readonly promise: Promise<string>;
+  readonly cancel: () => void;
   /** Set synchronously when the notification handler fires. Non-null means a
    *  notification was received regardless of which code path awaits the promise. */
-  receivedUri: string | null;
+  readonly receivedUri: string | null;
 }
 
 function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: number): NotificationWaiter {
   let settled = false;
+  let receivedUri: string | null = null;
   let timeout: NodeJS.Timeout;
 
-  const waiter: NotificationWaiter = {
-    promise: null!,
-    cancel: null!,
-    receivedUri: null,
-  };
-
-  waiter.promise = new Promise<string>((resolve, reject) => {
+  const promise = new Promise<string>((resolve, reject) => {
     timeout = setTimeout(() => {
       settled = true;
       reject(new Error(`Timed out waiting for resource update notification after ${timeoutMs} ms`));
@@ -88,7 +83,7 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
 
       settled = true;
       clearTimeout(timeout);
-      waiter.receivedUri = notification.params.uri;
+      receivedUri = notification.params.uri;
       resolve(notification.params.uri);
     });
   });
@@ -96,18 +91,23 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
   // Attach a no-op rejection handler so that if the timeout fires while the
   // caller is in a non-awaiting code path (e.g., the pre-completion branch),
   // Node.js does not report an unhandled promise rejection.
-  waiter.promise.catch(() => {});
+  promise.catch(() => {});
 
-  waiter.cancel = () => {
-    if (settled) {
-      return;
-    }
+  return {
+    promise,
+    // Getter so the caller reads the live value after awaiting readResource().
+    get receivedUri(): string | null {
+      return receivedUri;
+    },
+    cancel: () => {
+      if (settled) {
+        return;
+      }
 
-    settled = true;
-    clearTimeout(timeout);
+      settled = true;
+      clearTimeout(timeout);
+    },
   };
-
-  return waiter;
 }
 
 export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise<SubscribeProbeResult> {

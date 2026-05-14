@@ -387,7 +387,8 @@ describe("MCP resource subscription probe", () => {
           mcpServer.server.setRequestHandler(ReadResourceRequestSchema, async () => {
             readCount++;
             // First read (pre-subscribe): initial state. All subsequent reads: updated state.
-            const state = readCount === 1 ? createInitialReviewStatus(TEST_CONFIG) : createUpdatedReviewStatus(TEST_CONFIG);
+            const state =
+              readCount === 1 ? createInitialReviewStatus(TEST_CONFIG) : createUpdatedReviewStatus(TEST_CONFIG);
             return { contents: [{ uri: REVIEW_STATUS_URI, mimeType: "text/plain", text: renderReviewStatus(state) }] };
           });
 
