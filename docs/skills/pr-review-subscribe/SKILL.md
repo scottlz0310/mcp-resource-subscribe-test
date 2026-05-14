@@ -135,20 +135,30 @@ If a wrapper is found and shell execution is allowed:
 2. Run the wrapper with the `resource_uri` from 1S-A. Example pattern from `references/tool-template.md`:
 
 ```bash
-npm run probe:subscribe -- --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
+pnpm dlx mcp-resource-subscriber --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
+```
+
+If `pnpm` is unavailable, substitute `npx`:
+
+```bash
+npx mcp-resource-subscriber --url <mcp-server-url> --uri <resource_uri> --timeout-ms 900000
 ```
 
 For servers requiring Bearer auth and dynamic resource URIs (e.g., `copilot-review-mcp`):
 
 ```bash
-# Build first if not already done: npm ci && npm run build
 MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
-node dist/src/client/cli.js \
+pnpm dlx mcp-resource-subscriber \
   --url <mcp-server-url> \
   --uri <resource_uri> \
   --skip-resource-list-check \
   --timeout-ms 900000
 ```
+
+> **Note — version pinning**: `pnpm dlx` / `npx` default to the latest published version.
+> Pin a specific release with `mcp-resource-subscriber@<version>` to ensure reproducibility.
+> When testing unreleased local changes, use `node dist/src/client/cli.js` instead
+> (requires `npm ci && npm run build` first).
 
 3. The wrapper must:
    - Connect to the MCP server
@@ -441,14 +451,15 @@ The copilot-review-mcp gateway **does support** the MCP `resources/subscribe` +
 
 ```bash
 # Using env var (recommended — avoids token in process list)
-# Build first if needed: npm ci && npm run build
 MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
-node dist/src/client/cli.js \
+pnpm dlx mcp-resource-subscriber \
   --url http://127.0.0.1:8080/mcp/copilot-review \
   --uri copilot-review://watch/<watch_id> \
   --skip-resource-list-check \
   --timeout-ms 900000
 ```
+
+If `pnpm` is unavailable, substitute `npx` for `pnpm dlx`.
 
 Or via vitest E2E (useful for assertion logging):
 
@@ -456,7 +467,7 @@ Or via vitest E2E (useful for assertion logging):
 MCP_E2E_URL=http://127.0.0.1:8080/mcp/copilot-review \
 MCP_E2E_TOKEN=$(gh auth token) \
 MCP_E2E_WATCH_ID=<watch_id> \
-npx vitest run test/e2e.test.ts
+pnpm dlx vitest run test/e2e.test.ts
 ```
 
 ### Confirmed Successful Output (Level 3, ~84s)

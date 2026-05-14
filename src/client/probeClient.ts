@@ -94,7 +94,7 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const client = new Client({
     name: options.clientName ?? "mcp-resource-subscribe-probe-client",
-    version: options.clientVersion ?? "0.1.0",
+    version: options.clientVersion ?? "0.1.1",
   });
 
   try {
