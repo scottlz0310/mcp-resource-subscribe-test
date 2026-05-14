@@ -40,6 +40,11 @@ function parseOptions(): CliOptions {
   return { url, uri, timeoutMs };
 }
 
+function extractRecommendedAction(text: string): string | null {
+  const match = text.match(/^recommended_next_action[: ]+(\S+)/m);
+  return match ? (match[1] ?? null) : null;
+}
+
 function printResult(result: Awaited<ReturnType<typeof runSubscribeProbe>>, url: string, uri: string): void {
   console.log(`capabilities ${JSON.stringify(result.capabilities)}`);
   console.log(`resource-found ${result.resourceFound}`);
@@ -53,6 +58,10 @@ function printResult(result: Awaited<ReturnType<typeof runSubscribeProbe>>, url:
   console.log(`subscribed ${result.subscribed}`);
   console.log(`notification-received ${result.route === "subscription"}`);
   console.log(`unsubscribed ${result.unsubscribed}`);
+  const recommendedAction = extractRecommendedAction(result.finalText);
+  if (recommendedAction) {
+    console.log(`recommended_next_action ${recommendedAction}`);
+  }
   console.log(`error-code ${result.errorCode ?? "null"}`);
   if (result.notificationUri) {
     console.log(`notification ${result.notificationUri}`);

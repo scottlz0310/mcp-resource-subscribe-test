@@ -156,6 +156,7 @@ try {
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`subscribe-probe failed: ${message}`);
+  console.log("error-code INTERNAL_ERROR");
   console.log("phase-summary route=failed url=unknown error-code=INTERNAL_ERROR");
   process.exitCode = 1;
 }
