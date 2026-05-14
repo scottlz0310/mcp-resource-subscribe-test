@@ -30,7 +30,14 @@ export interface SubscribeProbeResult {
   initialText: string;
   notificationUri: string;
   finalText: string;
-  route: "subscription" | "timeout";
+  /**
+   * How the probe completed:
+   * - "subscription"     — received notifications/resources/updated, then re-read
+   * - "pre-completion"   — post-subscribe read detected the resource was already
+   *                        updated (race: notification fired before subscribe)
+   * - "timeout"          — notification never arrived within timeoutMs
+   */
+  route: "subscription" | "pre-completion" | "timeout";
   subscribed: boolean;
   unsubscribed: boolean;
   errorCode: string | null;
@@ -150,6 +157,33 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
         subscribed: false,
         unsubscribed: false,
         errorCode: "SUBSCRIPTION_FAILED",
+      };
+    }
+
+    // Immediately read once after subscribe to handle the pre-completion race condition:
+    // if the resource was already updated before our subscription was established
+    // (i.e., the notification fired before we subscribed), we will never receive
+    // that notification. Comparing with initialText detects this window.
+    const postSubscribeRead = await client.readResource({ uri });
+    const postSubscribeText = getResourceText(postSubscribeRead);
+    if (postSubscribeText !== initialText) {
+      notification.cancel();
+      try {
+        await client.unsubscribeResource({ uri });
+        unsubscribed = true;
+      } catch {
+        // ignore unsubscribe errors
+      }
+      return {
+        capabilities,
+        resourceFound: true,
+        initialText,
+        notificationUri: "",
+        finalText: postSubscribeText,
+        route: "pre-completion",
+        subscribed: true,
+        unsubscribed,
+        errorCode: null,
       };
     }
 

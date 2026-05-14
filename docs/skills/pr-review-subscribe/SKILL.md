@@ -94,9 +94,14 @@ If the response lacks `resource_uri`, construct it from the configured template 
 Attempt native subscription first:
 
 1. Use `{RSRC}:resources/subscribe` on `resource_uri`.
-2. Wait for `notifications/resources/updated` for that same `resource_uri`.
-3. After every update notification, call `{RSRC}:resources/read` for `resource_uri`.
-4. Parse the read content and follow `recommended_next_action`.
+2. **Immediately** call `{RSRC}:resources/read` for `resource_uri` once (no delay, no polling).
+   If the result already shows a terminal state (e.g., `recommended_next_action=READ_REVIEW_THREADS`),
+   proceed to Phase 2 **without waiting for a notification**.
+   This handles the race condition where Copilot completed the review before the subscription
+   was established and the `notifications/resources/updated` was already sent.
+3. If the post-subscribe read is non-terminal, wait for `notifications/resources/updated` for that same `resource_uri`.
+4. After every update notification, call `{RSRC}:resources/read` for `resource_uri`.
+5. Parse the read content and follow `recommended_next_action`.
 
 Expected terminal update:
 
@@ -163,7 +168,11 @@ pnpm dlx mcp-resource-subscriber \
 3. The wrapper must:
    - Connect to the MCP server
    - Subscribe to `resource_uri`
-   - Block until `notifications/resources/updated` is received
+   - **Immediately read the resource once after subscribing**; if terminal state is already
+     present (e.g., `recommended_next_action=READ_REVIEW_THREADS`), complete with
+     `route pre-completion` without waiting for a notification.
+     This handles the race where Copilot finished before the probe subscribed.
+   - Otherwise block until `notifications/resources/updated` is received
    - Re-read the resource after notification
    - Return `recommended_next_action`
 4. Parse the output and follow the same action table as 1S-B.
@@ -472,6 +481,8 @@ pnpm dlx vitest run test/e2e.test.ts
 
 ### Confirmed Successful Output (Level 3, ~84s)
 
+Normal subscription route (notification received after review completes):
+
 ```
 route subscription
 subscribed true
@@ -479,6 +490,18 @@ notification-received true
 unsubscribed true
 error-code null
 ```
+
+Pre-completion route (review already done before probe subscribed — race condition):
+
+```
+route pre-completion
+subscribed true
+notification-received false
+unsubscribed true
+error-code null
+```
+
+Both outputs are valid success results. Parse `recommended_next_action` from the `final` block to determine the next phase.
 
 ### Subscription Probe Timeout
 

@@ -14,6 +14,7 @@ import {
   ReadResourceRequestSchema,
   ResourceUpdatedNotificationSchema,
   SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,6 +23,7 @@ import type { TestConfig } from "../src/server/config.js";
 import { createMcpHttpApp } from "../src/server/httpServer.js";
 import {
   createInitialReviewStatus,
+  createUpdatedReviewStatus,
   REVIEW_STATUS_RESOURCE,
   REVIEW_STATUS_URI,
   renderReviewStatus,
@@ -348,5 +350,88 @@ describe("MCP resource subscription probe", () => {
     expect(result.route).toBe("timeout");
     expect(result.subscribed).toBe(false);
     expect(result.unsubscribed).toBe(false);
+  });
+
+  it("takes the pre-completion route when resource was already updated before subscription", async () => {
+    // Simulates the race condition: the resource updates between initial read and
+    // subscribe (i.e., the notification fired before our subscription was established).
+    // The server returns version 1 on the first read, accepts subscribe, then returns
+    // version 2 on the post-subscribe read without ever sending a notification.
+    const app = express();
+    const transports = new Map<string, StreamableHTTPServerTransport>();
+
+    app.use(express.json({ limit: "1mb", type: ["application/json", "application/*+json"] }));
+
+    app.post("/mcp", async (req, res) => {
+      const sessionId = req.header("mcp-session-id") ?? undefined;
+      try {
+        let transport: StreamableHTTPServerTransport | undefined;
+
+        if (sessionId) {
+          transport = transports.get(sessionId);
+          if (!transport) {
+            res.status(404).json({ jsonrpc: "2.0", error: { code: -32000, message: "Unknown session" }, id: null });
+            return;
+          }
+        } else if (isInitializeRequest(req.body)) {
+          const mcpServer = new McpServer(
+            { name: "test-pre-completed", version: "0.1.0" },
+            { capabilities: { resources: { subscribe: true } } },
+          );
+
+          let readCount = 0;
+          mcpServer.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+            resources: [REVIEW_STATUS_RESOURCE],
+          }));
+
+          mcpServer.server.setRequestHandler(ReadResourceRequestSchema, async () => {
+            readCount++;
+            // First read (pre-subscribe): initial state. All subsequent reads: updated state.
+            const state = readCount === 1 ? createInitialReviewStatus(TEST_CONFIG) : createUpdatedReviewStatus(TEST_CONFIG);
+            return { contents: [{ uri: REVIEW_STATUS_URI, mimeType: "text/plain", text: renderReviewStatus(state) }] };
+          });
+
+          mcpServer.server.setRequestHandler(SubscribeRequestSchema, async () => ({}));
+          mcpServer.server.setRequestHandler(UnsubscribeRequestSchema, async () => ({}));
+
+          transport = new StreamableHTTPServerTransport({
+            sessionIdGenerator: () => randomUUID(),
+            onsessioninitialized: (id) => {
+              if (transport) transports.set(id, transport);
+            },
+            onsessionclosed: (id) => {
+              transports.delete(id);
+            },
+          });
+          await mcpServer.connect(transport);
+        } else {
+          res.status(400).json({ jsonrpc: "2.0", error: { code: -32000, message: "Bad Request" }, id: null });
+          return;
+        }
+
+        await transport.handleRequest(req, res, req.body);
+      } catch {
+        if (!res.headersSent) {
+          res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error" }, id: null });
+        }
+      }
+    });
+
+    const server = app.listen(0, "127.0.0.1");
+    servers.push(server);
+    await once(server, "listening");
+    const { port } = server.address() as import("node:net").AddressInfo;
+    const url = `http://127.0.0.1:${port}/mcp`;
+
+    const result = await runSubscribeProbe({ url, uri: REVIEW_STATUS_URI, timeoutMs: 500 });
+
+    expect(result.resourceFound).toBe(true);
+    expect(result.subscribed).toBe(true);
+    expect(result.unsubscribed).toBe(true);
+    expect(result.route).toBe("pre-completion");
+    expect(result.initialText).toContain("version: 1");
+    expect(result.finalText).toContain("version: 2");
+    expect(result.notificationUri).toBe("");
+    expect(result.errorCode).toBeNull();
   });
 });
