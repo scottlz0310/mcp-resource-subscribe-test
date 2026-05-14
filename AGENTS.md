@@ -33,7 +33,7 @@ src/
   mcpServer.ts     — createProbeServer(): registers MCP handlers (list/read/subscribe/unsubscribe + tool)
   resourceState.ts — ReviewStatusStore (in-memory, version 1→2), renderReviewStatus(), constants
   probeClient.ts   — runSubscribeProbe(): SDK client that exercises the full flow, returns typed result
-  logger.ts        — createConsoleLogger(config): returns a LogSink filtered by logLevel
+  logger.ts        — createConsoleLogger(config): returns a LogSink that outputs all lines unless logLevel is 'silent' (no level hierarchy filtering)
   cli.ts           — stub CLI entry (not yet implemented; exits with error unless --help)
 
 scripts/
@@ -45,7 +45,7 @@ test/
 
 ## Key Patterns
 
-**Dual-role repo**: `src/index.ts` (server) and `src/probeClient.ts` (client) are both first-class. The server is for Docker/manual testing; the probe client is what's exported for npm publish.
+**Dual-role repo**: `src/index.ts` (server) and `src/probeClient.ts` (client) are both first-class. The server is for Docker/manual testing; the probe client is published in the package (`dist/src/probeClient.js`) but not exposed via a formal `exports` or `main` entry point.
 
 **`createProbeServer()` triggers the update only on subscribe**: `scheduleUpdate()` is called inside the `SubscribeRequestSchema` handler. The timer fires after `updateDelaySeconds` seconds. In tests, this is set to `0.05` so tests run fast — don't use the production default (5s) in tests.
 
@@ -82,9 +82,11 @@ Three test cases:
 
 ## Results and Docs
 
-- `results/compatibility-matrix.md` — tracks which agents pass/fail the subscription probe
+- `results/compatibility-matrix.md` — Round 1 compatibility matrix (resource-only testing)
+- `results/compatibility-matrix-v2.md` — Round 2 compatibility matrix (tool + resource testing, current)
 - `results/` — session logs from individual agent testing runs
-- `docs/verification-guide.md` — repeatable manual verification procedure
+- `docs/verification-guide.md` — Round 1 manual verification procedure
+- `docs/verification-guide-v2.md` — Round 2 manual verification procedure (current)
 - `docs/skills/pr-review-subscribe/SKILL.md` — Codex skill template for PR review via subscribe
 
 ## CLI Status
