@@ -43,6 +43,8 @@ function parseOptions(): CliOptions {
 function printResult(result: Awaited<ReturnType<typeof runSubscribeProbe>>, url: string, uri: string): void {
   console.log(`capabilities ${JSON.stringify(result.capabilities)}`);
   console.log(`resource-found ${result.resourceFound}`);
+  console.log(`resource-uri ${uri}`);
+  console.log(`server-url ${url}`);
   if (result.initialText) {
     console.log("initial");
     console.log(result.initialText);
@@ -71,7 +73,7 @@ try {
     console.log("phase-summary route=failed url=unknown error-code=SERVER_URL_UNKNOWN");
     process.exitCode = 1;
   } else {
-    const result = await runSubscribeProbe(options as { url: string; uri: string; timeoutMs: number });
+    const result = await runSubscribeProbe({ url: options.url, uri: options.uri, timeoutMs: options.timeoutMs });
     printResult(result, options.url, options.uri);
     if (result.errorCode) {
       process.exitCode = 1;

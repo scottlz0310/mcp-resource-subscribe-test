@@ -201,4 +201,30 @@ describe("MCP resource subscription probe", () => {
     expect(result.subscribed).toBe(false);
     expect(result.unsubscribed).toBe(false);
   });
+
+  it("returns NOTIFICATION_TIMEOUT errorCode when server never sends notification", async () => {
+    const logs: string[] = [];
+    // Use a large updateDelaySeconds so the notification never arrives within the probe timeout
+    const app = createMcpHttpApp(
+      { ...TEST_CONFIG, updateDelaySeconds: 100 },
+      (line) => logs.push(line),
+    );
+    const server = app.listen(0, "127.0.0.1");
+    servers.push(server);
+    await once(server, "listening");
+    const address = (server.address() as import("node:net").AddressInfo);
+    const url = `http://127.0.0.1:${address.port}/mcp`;
+
+    const result = await runSubscribeProbe({
+      url,
+      uri: REVIEW_STATUS_URI,
+      timeoutMs: 200,
+    });
+
+    expect(result.resourceFound).toBe(true);
+    expect(result.errorCode).toBe("NOTIFICATION_TIMEOUT");
+    expect(result.route).toBe("timeout");
+    expect(result.subscribed).toBe(true);
+    expect(result.unsubscribed).toBe(true);
+  });
 });

@@ -56,18 +56,23 @@ Every run emits machine-parseable lines:
 ```
 capabilities {"subscribe":true,"listChanged":true}
 resource-found true
+resource-uri <resource-uri>
+server-url <url>
 initial
 <initial resource text>
 route subscription
 subscribed true
 notification-received true
 unsubscribed true
+recommended_next_action READ_REVIEW_THREADS
 error-code null
 notification <resource-uri>
 final
 <updated resource text>
 phase-summary route=subscription url=<url> uri=<uri>
 ```
+
+> **Note**: `recommended_next_action` is only emitted when the final resource text contains it (e.g., from `copilot-review-mcp`). It is omitted for the bundled test server.
 
 On failure:
 

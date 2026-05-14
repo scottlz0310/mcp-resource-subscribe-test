@@ -108,6 +108,8 @@ function printResult(
 ): void {
   console.log(`capabilities ${JSON.stringify(result.capabilities)}`);
   console.log(`resource-found ${result.resourceFound}`);
+  console.log(`resource-uri ${uri}`);
+  console.log(`server-url ${url}`);
   if (result.initialText) {
     console.log("initial");
     console.log(result.initialText);
