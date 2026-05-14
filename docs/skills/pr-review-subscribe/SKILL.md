@@ -155,7 +155,8 @@ pnpm dlx mcp-resource-subscriber \
   --timeout-ms 900000
 ```
 
-> **Note — version pinning**: `pnpm dlx` / `npx` always fetch the latest published version.
+> **Note — version pinning**: `pnpm dlx` / `npx` default to the latest published version.
+> Pin a specific release with `mcp-resource-subscriber@<version>` to ensure reproducibility.
 > When testing unreleased local changes, use `node dist/src/client/cli.js` instead
 > (requires `npm ci && npm run build` first).
 
