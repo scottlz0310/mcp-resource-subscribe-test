@@ -1,14 +1,31 @@
 import { once } from "node:events";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { randomUUID } from "node:crypto";
+import express from "express";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import {
+  ErrorCode,
+  isInitializeRequest,
+  ListResourcesRequestSchema,
+  McpError,
+  ReadResourceRequestSchema,
+  ResourceUpdatedNotificationSchema,
+  SubscribeRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { TestConfig } from "../src/config.js";
 import { createMcpHttpApp } from "../src/httpServer.js";
 import { runSubscribeProbe } from "../src/probeClient.js";
-import { REVIEW_STATUS_URI } from "../src/resourceState.js";
+import {
+  createInitialReviewStatus,
+  REVIEW_STATUS_RESOURCE,
+  REVIEW_STATUS_URI,
+  renderReviewStatus,
+} from "../src/resourceState.js";
 
 const TEST_CONFIG: TestConfig = {
   port: 0,
@@ -72,6 +89,73 @@ afterEach(async () => {
     ),
   );
 });
+
+async function startSubscribeRejectingServer(): Promise<string> {
+  const app = express();
+  const transports = new Map<string, StreamableHTTPServerTransport>();
+
+  app.use(express.json({ limit: "1mb", type: ["application/json", "application/*+json"] }));
+
+  app.post("/mcp", async (req, res) => {
+    const sessionId = req.header("mcp-session-id") ?? undefined;
+    try {
+      let transport: StreamableHTTPServerTransport | undefined;
+
+      if (sessionId) {
+        transport = transports.get(sessionId);
+        if (!transport) {
+          res.status(404).json({ jsonrpc: "2.0", error: { code: -32000, message: "Unknown session" }, id: null });
+          return;
+        }
+      } else if (isInitializeRequest(req.body)) {
+        const mcpServer = new McpServer(
+          { name: "test-no-subscribe", version: "0.1.0" },
+          { capabilities: { resources: { subscribe: true } } },
+        );
+
+        mcpServer.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+          resources: [REVIEW_STATUS_RESOURCE],
+        }));
+
+        mcpServer.server.setRequestHandler(ReadResourceRequestSchema, async () => ({
+          contents: [{
+            uri: REVIEW_STATUS_URI,
+            mimeType: "text/plain",
+            text: renderReviewStatus(createInitialReviewStatus(TEST_CONFIG)),
+          }],
+        }));
+
+        mcpServer.server.setRequestHandler(SubscribeRequestSchema, async () => {
+          throw new McpError(ErrorCode.MethodNotFound, "Subscriptions not supported by this server");
+        });
+
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (id) => {
+            if (transport) transports.set(id, transport);
+          },
+          onsessionclosed: (id) => { transports.delete(id); },
+        });
+        await mcpServer.connect(transport);
+      } else {
+        res.status(400).json({ jsonrpc: "2.0", error: { code: -32000, message: "Bad Request" }, id: null });
+        return;
+      }
+
+      await transport.handleRequest(req, res, req.body);
+    } catch {
+      if (!res.headersSent) {
+        res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error" }, id: null });
+      }
+    }
+  });
+
+  const server = app.listen(0, "127.0.0.1");
+  servers.push(server);
+  await once(server, "listening");
+  const address = server.address() as AddressInfo;
+  return `http://127.0.0.1:${address.port}/mcp`;
+}
 
 describe("MCP resource subscription probe", () => {
   it("exposes get_review_status in tools/list and returns status text on tools/call", async () => {
@@ -170,6 +254,10 @@ describe("MCP resource subscription probe", () => {
     expect(result.notificationUri).toBe(REVIEW_STATUS_URI);
     expect(result.finalText).toContain("version: 2");
     expect(result.finalText).toContain("status: reviewed");
+    expect(result.route).toBe("subscription");
+    expect(result.subscribed).toBe(true);
+    expect(result.unsubscribed).toBe(true);
+    expect(result.errorCode).toBeNull();
 
     expect(logs).toEqual(
       expect.arrayContaining([
@@ -179,5 +267,64 @@ describe("MCP resource subscription probe", () => {
         "[resources/unsubscribe] uri=test://review/status",
       ]),
     );
+  });
+
+  it("returns RESOURCE_NOT_FOUND errorCode when resource URI does not exist", async () => {
+    const logs: string[] = [];
+    const url = await startServer(logs);
+
+    const result = await runSubscribeProbe({
+      url: url.toString(),
+      uri: "test://does-not-exist",
+      timeoutMs: 2_000,
+    });
+
+    expect(result.resourceFound).toBe(false);
+    expect(result.errorCode).toBe("RESOURCE_NOT_FOUND");
+    expect(result.route).toBe("timeout");
+    expect(result.subscribed).toBe(false);
+    expect(result.unsubscribed).toBe(false);
+  });
+
+  it("returns NOTIFICATION_TIMEOUT errorCode when server never sends notification", async () => {
+    const logs: string[] = [];
+    // Use a large updateDelaySeconds so the notification never arrives within the probe timeout
+    const app = createMcpHttpApp(
+      { ...TEST_CONFIG, updateDelaySeconds: 100 },
+      (line) => logs.push(line),
+    );
+    const server = app.listen(0, "127.0.0.1");
+    servers.push(server);
+    await once(server, "listening");
+    const address = (server.address() as import("node:net").AddressInfo);
+    const url = `http://127.0.0.1:${address.port}/mcp`;
+
+    const result = await runSubscribeProbe({
+      url,
+      uri: REVIEW_STATUS_URI,
+      timeoutMs: 200,
+    });
+
+    expect(result.resourceFound).toBe(true);
+    expect(result.errorCode).toBe("NOTIFICATION_TIMEOUT");
+    expect(result.route).toBe("timeout");
+    expect(result.subscribed).toBe(true);
+    expect(result.unsubscribed).toBe(true);
+  });
+
+  it("returns SUBSCRIPTION_FAILED errorCode when server rejects the subscribe request", async () => {
+    const url = await startSubscribeRejectingServer();
+
+    const result = await runSubscribeProbe({
+      url,
+      uri: REVIEW_STATUS_URI,
+      timeoutMs: 2_000,
+    });
+
+    expect(result.resourceFound).toBe(true);
+    expect(result.errorCode).toBe("SUBSCRIPTION_FAILED");
+    expect(result.route).toBe("timeout");
+    expect(result.subscribed).toBe(false);
+    expect(result.unsubscribed).toBe(false);
   });
 });

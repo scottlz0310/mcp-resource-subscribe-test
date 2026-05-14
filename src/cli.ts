@@ -85,8 +85,7 @@ if (args.includes("--version") || args.includes("-v")) {
 }
 
 function parseOptions() {
-  const url =
-    readOption("url") ?? process.env.MCP_PROBE_URL ?? "http://127.0.0.1:8089/mcp";
+  const url = readOption("url") ?? process.env.MCP_PROBE_URL ?? null;
   const uri = readOption("uri") ?? process.env.MCP_PROBE_URI ?? REVIEW_STATUS_URI;
   const timeoutRaw =
     readOption("timeout-ms") ?? process.env.MCP_PROBE_TIMEOUT_MS ?? "15000";
@@ -97,24 +96,67 @@ function parseOptions() {
   return { url, uri, timeoutMs };
 }
 
+function extractRecommendedAction(text: string): string | null {
+  const match = text.match(/^recommended_next_action[: ]+(\S+)/m);
+  return match ? (match[1] ?? null) : null;
+}
+
 function printResult(
   result: Awaited<ReturnType<typeof runSubscribeProbe>>,
+  url: string,
+  uri: string,
 ): void {
   console.log(`capabilities ${JSON.stringify(result.capabilities)}`);
   console.log(`resource-found ${result.resourceFound}`);
-  console.log("initial");
-  console.log(result.initialText);
-  console.log(`notification ${result.notificationUri}`);
-  console.log("final");
-  console.log(result.finalText);
+  console.log(`resource-uri ${uri}`);
+  console.log(`server-url ${url}`);
+  if (result.initialText) {
+    console.log("initial");
+    console.log(result.initialText);
+  }
+  console.log(`route ${result.route}`);
+  console.log(`subscribed ${result.subscribed}`);
+  console.log(`notification-received ${result.route === "subscription"}`);
+  console.log(`unsubscribed ${result.unsubscribed}`);
+  const recommendedAction = extractRecommendedAction(result.finalText);
+  if (recommendedAction) {
+    console.log(`recommended_next_action ${recommendedAction}`);
+  }
+  console.log(`error-code ${result.errorCode ?? "null"}`);
+  if (result.notificationUri) {
+    console.log(`notification ${result.notificationUri}`);
+  }
+  if (result.finalText) {
+    console.log("final");
+    console.log(result.finalText);
+  }
+  const errorPart = result.errorCode ? ` error-code=${result.errorCode}` : "";
+  console.log(`phase-summary route=${result.route} url=${url} uri=${uri}${errorPart}`);
 }
 
 try {
   const options = parseOptions();
-  const result = await runSubscribeProbe(options);
-  printResult(result);
+
+  if (options.url === null) {
+    console.log("error-code SERVER_URL_UNKNOWN");
+    console.log("phase-summary route=failed url=unknown error-code=SERVER_URL_UNKNOWN");
+    process.exitCode = 1;
+  } else {
+    if (options.uri === REVIEW_STATUS_URI && !readOption("uri") && !process.env.MCP_PROBE_URI) {
+      console.warn(
+        "warning: using default URI test://review/status which is only meaningful against the bundled test server",
+      );
+    }
+    const result = await runSubscribeProbe({ url: options.url, uri: options.uri, timeoutMs: options.timeoutMs });
+    printResult(result, options.url, options.uri);
+    if (result.errorCode) {
+      process.exitCode = 1;
+    }
+  }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`subscribe-probe failed: ${message}`);
+  console.log("error-code INTERNAL_ERROR");
+  console.log("phase-summary route=failed url=unknown error-code=INTERNAL_ERROR");
   process.exitCode = 1;
 }
