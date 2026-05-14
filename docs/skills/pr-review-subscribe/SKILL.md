@@ -141,6 +141,7 @@ npm run probe:subscribe -- --url <mcp-server-url> --uri <resource_uri> --timeout
 For servers requiring Bearer auth and dynamic resource URIs (e.g., `copilot-review-mcp`):
 
 ```bash
+# Build first if not already done: npm ci && npm run build
 MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
 node dist/src/client/cli.js \
   --url <mcp-server-url> \
@@ -440,6 +441,7 @@ The copilot-review-mcp gateway **does support** the MCP `resources/subscribe` +
 
 ```bash
 # Using env var (recommended — avoids token in process list)
+# Build first if needed: npm ci && npm run build
 MCP_PROBE_AUTH_TOKEN=$(gh auth token) \
 node dist/src/client/cli.js \
   --url http://127.0.0.1:8080/mcp/copilot-review \
