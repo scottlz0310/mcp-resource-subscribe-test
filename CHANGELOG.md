@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- `src/server/mcpServer.ts` and `src/client/probeClient.ts` contain hardcoded `"0.1.0"` client/server version strings. These must be updated manually on future version bumps until dynamic `package.json` reading is added.
+- `src/server/mcpServer.ts` and `src/client/probeClient.ts` contain hardcoded version strings. These must be updated manually on each version bump until dynamic `package.json` reading is added.
 
 [0.1.1]: https://github.com/scottlz0310/mcp-resource-subscriber/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/scottlz0310/mcp-resource-subscriber/releases/tag/v0.1.0
