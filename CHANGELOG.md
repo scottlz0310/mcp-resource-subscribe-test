@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - Spike-to-CLI transition completed (closes #19); all 7 subtasks (#22, #24, #26, #27, #28, #29, #30) had already shipped
-- No runtime code changes in this release; bumps internal version strings to keep `package.json`, `src/server/mcpServer.ts`, and `src/client/probeClient.ts` in sync per the CHANGELOG 0.1.0 note
+- No functional behavior changes in this release; bumps internal version strings (observable via MCP `initialize` handshake) to keep `package.json`, `src/server/mcpServer.ts`, and `src/client/probeClient.ts` in sync per the CHANGELOG 0.1.0 note
 
 ## [0.1.1] - 2026-05-14
 
