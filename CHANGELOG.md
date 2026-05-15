@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-05-15
+
+### Changed
+
+- `pr-review-subscribe` skill: extended termination classification taxonomy in `docs/skills/pr-review-subscribe/SKILL.md` (closes #36)
+  - Phase 6 now records `termination_status` as one of `READY_TO_MERGE`, `ESCALATE — Clean`, or `ESCALATE — Unverified Fix`
+  - Phase 7 summary template surfaces the classification, unverified blocking commit SHA(s), and a human-review recommendation when applicable
+  - Phase 8 merge gate downgrades merge readiness on `ESCALATE — Unverified Fix` regardless of CI status
+- Distinguishes safe ESCALATE (max cycles reached with only non-blocking items) from risky ESCALATE (final cycle accepted a blocking fix that Copilot has not re-reviewed)
+
+### Notes
+
+- Spike-to-CLI transition completed (closes #19); all 7 subtasks (#22, #24, #26, #27, #28, #29, #30) had already shipped
+- No runtime code changes in this release; bumps internal version strings to keep `package.json`, `src/server/mcpServer.ts`, and `src/client/probeClient.ts` in sync per the CHANGELOG 0.1.0 note
+
 ## [0.1.1] - 2026-05-14
 
 ### Changed
@@ -38,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `src/server/mcpServer.ts` and `src/client/probeClient.ts` contain hardcoded version strings. These must be updated manually on each version bump until dynamic `package.json` reading is added.
 
+[0.1.2]: https://github.com/scottlz0310/mcp-resource-subscriber/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/scottlz0310/mcp-resource-subscriber/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/scottlz0310/mcp-resource-subscriber/releases/tag/v0.1.0
