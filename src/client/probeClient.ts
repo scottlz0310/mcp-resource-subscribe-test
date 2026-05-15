@@ -30,7 +30,14 @@ export interface SubscribeProbeResult {
   initialText: string;
   notificationUri: string;
   finalText: string;
-  route: "subscription" | "timeout";
+  /**
+   * How the probe completed:
+   * - "subscription"     — received notifications/resources/updated, then re-read
+   * - "pre-completion"   — post-subscribe read detected the resource was already
+   *                        updated (race: notification fired before subscribe)
+   * - "timeout"          — notification never arrived within timeoutMs
+   */
+  route: "subscription" | "pre-completion" | "timeout";
   subscribed: boolean;
   unsubscribed: boolean;
   errorCode: string | null;
@@ -48,12 +55,16 @@ function getResourceText(result: Awaited<ReturnType<Client["readResource"]>>): s
 }
 
 interface NotificationWaiter {
-  promise: Promise<string>;
-  cancel: () => void;
+  readonly promise: Promise<string>;
+  readonly cancel: () => void;
+  /** Set synchronously when the notification handler fires. Non-null means a
+   *  notification was received regardless of which code path awaits the promise. */
+  readonly receivedUri: string | null;
 }
 
 function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: number): NotificationWaiter {
   let settled = false;
+  let receivedUri: string | null = null;
   let timeout: NodeJS.Timeout;
 
   const promise = new Promise<string>((resolve, reject) => {
@@ -72,12 +83,22 @@ function waitForUpdatedNotification(client: Client, uri: string, timeoutMs: numb
 
       settled = true;
       clearTimeout(timeout);
+      receivedUri = notification.params.uri;
       resolve(notification.params.uri);
     });
   });
 
+  // Attach a no-op rejection handler so that if the timeout fires while the
+  // caller is in a non-awaiting code path (e.g., the pre-completion branch),
+  // Node.js does not report an unhandled promise rejection.
+  promise.catch(() => {});
+
   return {
     promise,
+    // Getter so the caller reads the live value after awaiting readResource().
+    get receivedUri(): string | null {
+      return receivedUri;
+    },
     cancel: () => {
       if (settled) {
         return;
@@ -133,7 +154,7 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
     let notificationUri = "";
     let finalText = "";
     let errorCode: string | null = null;
-    let route: "subscription" | "timeout" = "timeout";
+    let route: "subscription" | "pre-completion" | "timeout" = "timeout";
 
     try {
       await client.subscribeResource({ uri });
@@ -153,17 +174,37 @@ export async function runSubscribeProbe(options: SubscribeProbeOptions): Promise
       };
     }
 
+    // Wrap all post-subscribe operations in a single try/finally so that
+    // notification.cancel() and unsubscribeResource() always run — even when
+    // the post-subscribe read (pre-completion check) or the final read throws.
     try {
-      notificationUri = await notification.promise;
-      route = "subscription";
-    } catch {
-      errorCode = "NOTIFICATION_TIMEOUT";
-    }
+      // Immediately read once after subscribe to handle the pre-completion race condition:
+      // if the resource was already updated before our subscription was established
+      // (i.e., the notification fired before we subscribed), we will never receive
+      // that notification. Comparing with initialText detects this window.
+      const postSubscribeText = getResourceText(await client.readResource({ uri }));
+      if (postSubscribeText !== initialText) {
+        if (notification.receivedUri !== null) {
+          // Notification arrived during the post-subscribe read window.
+          // Prefer subscription route so the output accurately reflects that
+          // a notification was received rather than misreporting pre-completion.
+          route = "subscription";
+          notificationUri = notification.receivedUri;
+        } else {
+          route = "pre-completion";
+        }
+        finalText = postSubscribeText;
+      } else {
+        try {
+          notificationUri = await notification.promise;
+          route = "subscription";
+        } catch {
+          errorCode = "NOTIFICATION_TIMEOUT";
+        }
 
-    try {
-      if (route === "subscription") {
-        const final = await client.readResource({ uri });
-        finalText = getResourceText(final);
+        if (route === "subscription") {
+          finalText = getResourceText(await client.readResource({ uri }));
+        }
       }
     } finally {
       notification.cancel();
