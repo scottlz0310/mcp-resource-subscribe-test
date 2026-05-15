@@ -323,7 +323,7 @@ Follow `recommended_action`:
 | `REPLY_RESOLVE` | Return to Phase 2 |
 | `REQUEST_REREVIEW` | See override rule below; otherwise call `{CRM}:request_copilot_review`, increment `cycles_done`, return to Phase 1S |
 | `READY_TO_MERGE` | Phase 6.5 |
-| `ESCALATE` | Report state and stop |
+| `ESCALATE` | Classify and report (see termination classification below), then stop |
 
 **`REQUEST_REREVIEW` override (Issue #36)**:
 If `recommended_action = REQUEST_REREVIEW` AND the just-completed review returned 0 new unresolved threads, do **not** request another review. The tool's cycle accounting does not have enough context to detect this; the agent must apply this judgment override.
@@ -333,6 +333,33 @@ Treat the situation as `READY_TO_MERGE` and proceed to Phase 6.5.
 This override applies when both are true:
 - `cycles_done ≥ 1` (this is not the first cycle)
 - unresolved thread count from Phase 2 of this cycle = 0
+
+**Termination classification (Issue #36 follow-up)**:
+
+When the cycle terminates, classify the outcome so Phase 7 / Phase 8 can communicate
+the right level of confidence:
+
+| Classification | Condition | Implication for merge |
+| --- | --- | --- |
+| ✅ `READY_TO_MERGE` | `recommended_action = READY_TO_MERGE`, or override applied with `unresolved = 0` | Safe — normal merge gate |
+| 🟡 `ESCALATE — Clean` | `recommended_action = ESCALATE` AND the final cycle's accepted fixes contain **no** `blocking` items (only `non-blocking` / `suggestion` / `trivial`, or no fix at all) | Likely safe — note the unverified status but no blocking risk |
+| 🔴 `ESCALATE — Unverified Fix` | `recommended_action = ESCALATE` AND the final cycle accepted **at least one `blocking` fix** that Copilot has not re-reviewed | Risky — recommend human review of the last commit before merge |
+
+The classification uses the **final cycle's** Phase 3 decision table:
+
+- Count `accept` decisions where Class = `blocking` (from the final cycle only).
+- If that count ≥ 1 and the final action is `ESCALATE`, classify as `ESCALATE — Unverified Fix`.
+- Otherwise on `ESCALATE`, classify as `ESCALATE — Clean`.
+
+Record the following for Phase 7:
+
+- `termination_status`: one of the three values above
+- `final_cycle_fix_types`: counts of `blocking` / `non-blocking` / `suggestion` / `trivial` accepts
+- `override_applied`: `yes` if the Issue #36 override was used to reach `READY_TO_MERGE`, otherwise `no`
+- `unverified_blocking_commits`: list of commit SHAs from the final cycle when classification is `ESCALATE — Unverified Fix`
+
+On `ESCALATE — Unverified Fix`, still proceed to Phase 6.5 / 6.6 / 7 (CI and summary
+are still useful), but Phase 8 must downgrade merge readiness regardless of CI outcome.
 
 ## Phase 6.5: CI
 
@@ -383,7 +410,26 @@ Post a PR comment through `{GH}:add_issue_comment`:
 ### Verification
 - CI: ...
 - Unresolved threads: ...
-- Cycle status: ...
+- Cycle status: <termination_status>
+  - one of: `READY_TO_MERGE` | `ESCALATE — Clean` | `ESCALATE — Unverified Fix`
+  - On `ESCALATE — Unverified Fix`: include reason, the unverified commit SHA(s),
+    and an explicit "Recommendation: human review of the last commit before merge".
+- Final cycle fix types: blocking × N, non-blocking × N, suggestion × N, trivial × N
+- Override applied (Issue #36): yes | no
+```
+
+Example for `ESCALATE — Unverified Fix`:
+
+```markdown
+### Verification
+- CI: ✅
+- Unresolved threads: 0
+- Cycle status: 🔴 ESCALATE — Unverified Fix
+  - Reason: max_cycles (3) reached; final cycle accepted a blocking fix
+    (<commit-sha>) that Copilot has not re-reviewed
+  - Final cycle fix types: blocking × 1
+  - Recommendation: human review of the last commit before merge
+- Override applied (Issue #36): no
 ```
 
 ## Phase 8: Merge Gate
@@ -396,8 +442,16 @@ Before any user-requested merge, verify:
 - unresolved review threads = 0
 - all threads replied
 - no unresolved blocking item
+- `termination_status` is `READY_TO_MERGE` or `ESCALATE — Clean`
 
-If any condition is missing, report it instead of merging.
+If `termination_status` is `🔴 ESCALATE — Unverified Fix`:
+
+1. Do **not** report the PR as ready to merge, even if CI is green and unresolved = 0.
+2. Surface the warning prominently to the user with the unverified commit SHA(s).
+3. If the user still requests a merge, confirm explicitly that they have manually
+   reviewed the unverified blocking fix before proceeding.
+
+If any other condition is missing, report it instead of merging.
 
 ## Reporting Requirements
 
@@ -415,6 +469,8 @@ In the final response, include:
   - whether `{RSRC}:resources/read` after notification reached a terminal watch state
   - whether `{RSRC}:resources/unsubscribe` completed
 - merge readiness
+- `termination_status` (`READY_TO_MERGE` / `ESCALATE — Clean` / `ESCALATE — Unverified Fix`)
+- on `ESCALATE — Unverified Fix`: the unverified blocking commit SHA(s) and an explicit human-review recommendation
 
 ## Environment Notes: copilot-review-mcp (Confirmed 2026-05-14)
 
